@@ -8,46 +8,82 @@ datasource db {
 }
 
 model User {
-  id             String    @id @default(uuid())
-  email          String    @unique
-  password       String
-  firstName      String?
-  lastName       String?
-  vehicles       Vehicle[]
-  loginAttempts  Int       @default(0)
+  id               String    @id @default(uuid())
+  email            String    @unique
+  password         String
+  firstName        String?
+  lastName         String?
+  loginAttempts    Int       @default(0)
   lastLoginAttempt DateTime?
-  isBlocked      Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  isBlocked        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  vehicles         Vehicle[]
 }
 
 model Vehicle {
-  id                 String    @id @default(uuid())
-  userId             String
-  user               User      @relation(fields: [userId], references: [id])
-  brand              String
-  model              String
-  year               Int
-  licensePlate       String    @unique
-  vin                String?   @unique
-  mileage            Int?
-  energyType         EnergyType
-  chassisNumber      String?
-  productionDate     DateTime?
-  acquisitionDate    DateTime?
-  initialMileage     Float?
-  currentMileage     Float?
-  powerDIN           Float?
-  powerHP            Float?
-  batterySize        Float?
-  lastTechnicalCheck DateTime?
-  lastMaintenanceDone DateTime?
+  id                   String                @id @default(uuid())
+  userId               String
+  brand                String
+  model                String
+  licensePlate         String                @unique
+  energyType           EnergyType
+  chassisNumber        String?
+  productionDate       DateTime?
+  acquisitionDate      DateTime?
+  initialMileage       Float?
+  currentMileage       Float?
+  powerDIN             Float?
+  powerHP              Float?
+  batterySize          Float?
+  lastTechnicalCheck   DateTime?
   maintenanceFrequency MaintenanceFrequency?
-  fuelEntries        FuelEntry[]
-  maintenanceEntries MaintenanceEntry[]
-  status             VehicleStatus @default(ACTIVE)
-  createdAt          DateTime   @default(now())
-  updatedAt          DateTime   @updatedAt
+  status               VehicleStatus         @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  mileage              Int?
+  vin                  String?               @unique
+  year                 Int
+  lastMaintenanceDone  DateTime?
+  nextTechnicalCheck   DateTime?
+  fuelEntries          FuelEntry[]
+  maintenanceEntries   MaintenanceEntry[]
+  user                 User                  @relation(fields: [userId], references: [id])
+}
+
+model FuelEntry {
+  id                   String      @id @default(uuid())
+  vehicleId            String
+  date                 DateTime
+  mileage              Float
+  quantity             Float
+  unitPrice            Float
+  totalCost            Float
+  fuelType             String?
+  stationType          StationType?
+  rechargeType         RechargeType?
+  isSubscription       Boolean     @default(false)
+  subscriptionStartDate DateTime?
+  subscriptionEndDate   DateTime?
+  status               EntryStatus @default(ACTIVE)
+  createdAt            DateTime    @default(now())
+  updatedAt            DateTime    @updatedAt
+  vehicle              Vehicle     @relation(fields: [vehicleId], references: [id])
+}
+
+model MaintenanceEntry {
+  id           String          @id @default(uuid())
+  vehicleId    String
+  date         DateTime
+  type         MaintenanceType
+  description  String
+  cost         Float
+  mileage      Float
+  providerName String?
+  status       EntryStatus     @default(ACTIVE)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  vehicle      Vehicle         @relation(fields: [vehicleId], references: [id])
 }
 
 enum EnergyType {
@@ -73,37 +109,6 @@ enum MaintenanceFrequency {
   EVERY_30000KM
 }
 
-model FuelEntry {
-  id             String    @id @default(uuid())
-  vehicleId      String
-  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id])
-  date           DateTime
-  mileage        Float
-  quantity       Float
-  unitPrice      Float
-  totalCost      Float
-  fuelType       String?
-  stationType    String?
-  status         EntryStatus @default(ACTIVE)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-}
-
-model MaintenanceEntry {
-  id             String    @id @default(uuid())
-  vehicleId      String
-  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id])
-  date           DateTime
-  type           MaintenanceType
-  description    String
-  cost           Float
-  mileage        Float
-  providerName   String?
-  status         EntryStatus @default(ACTIVE)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-}
-
 enum MaintenanceType {
   ROUTINE
   REPAIR
@@ -114,4 +119,16 @@ enum MaintenanceType {
 enum EntryStatus {
   ACTIVE
   SOFT_DELETED
-} 
+}
+
+enum StationType {
+  PUBLIC
+  PRIVATE
+  HOME
+}
+
+enum RechargeType {
+  FAST
+  NORMAL
+  SLOW
+}

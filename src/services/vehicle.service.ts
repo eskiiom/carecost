@@ -20,6 +20,7 @@ interface CreateVehicleData {
   powerHP?: number;
   batterySize?: number;
   lastTechnicalCheck?: Date;
+  nextTechnicalCheck?: Date;
   maintenanceFrequency?: MaintenanceFrequency;
   status?: VehicleStatus;
 }
@@ -41,6 +42,7 @@ interface UpdateVehicleData {
   powerHP?: number;
   batterySize?: number;
   lastTechnicalCheck?: Date;
+  nextTechnicalCheck?: Date;
   maintenanceFrequency?: MaintenanceFrequency;
   status?: VehicleStatus;
 }

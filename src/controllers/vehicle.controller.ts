@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import vehicleService from '../services/vehicle.service';
+import { getSystemDate } from '../config/systemDate';
 
 // Définition des énumérations localement
 enum EnergyType {
@@ -74,21 +75,15 @@ class VehicleController {
       }
 
       // Validation de l'année
-      if (year < 1900 || year > new Date().getFullYear() + 1) {
+      const systemDate = getSystemDate();
+      if (year < 1900 || year > systemDate.getFullYear() + 1) {
         return res.status(400).json({ 
-          message: `L'année doit être comprise entre 1900 et ${new Date().getFullYear() + 1}`
+          message: `L'année doit être comprise entre 1900 et ${systemDate.getFullYear() + 1}`
         });
       }
 
       // Validation des dates
-      const now = new Date();
-      // S'assurer que la date actuelle n'est pas dans le futur
-      if (now.getFullYear() > 2024) {
-        console.log('Attention: La date système semble être dans le futur. Utilisation de la date du 26 mars 2024.');
-        now.setFullYear(2024);
-        now.setMonth(2); // 0-based index, 2 = mars
-        now.setDate(26);
-      }
+      const now = getSystemDate();
       console.log('Date actuelle:', now);
       
       const dates = {
@@ -269,21 +264,15 @@ class VehicleController {
       }
 
       // Validation de l'année
-      if (year && (year < 1900 || year > new Date().getFullYear() + 1)) {
+      const systemDate = getSystemDate();
+      if (year && (year < 1900 || year > systemDate.getFullYear() + 1)) {
         return res.status(400).json({ 
-          message: `L'année doit être comprise entre 1900 et ${new Date().getFullYear() + 1}`
+          message: `L'année doit être comprise entre 1900 et ${systemDate.getFullYear() + 1}`
         });
       }
 
       // Validation des dates
-      const now = new Date();
-      // S'assurer que la date actuelle n'est pas dans le futur
-      if (now.getFullYear() > 2024) {
-        console.log('Attention: La date système semble être dans le futur. Utilisation de la date du 26 mars 2024.');
-        now.setFullYear(2024);
-        now.setMonth(2); // 0-based index, 2 = mars
-        now.setDate(26);
-      }
+      const now = getSystemDate();
       console.log('Date actuelle:', now);
       
       const dates = {
