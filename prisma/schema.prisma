@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  password       String
+  firstName      String?
+  lastName       String?
+  vehicles       Vehicle[]
+  loginAttempts  Int       @default(0)
+  lastLoginAttempt DateTime?
+  isBlocked      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Vehicle {
+  id                 String    @id @default(uuid())
+  userId             String
+  user               User      @relation(fields: [userId], references: [id])
+  brand              String
+  model              String
+  year               Int
+  licensePlate       String    @unique
+  vin                String?   @unique
+  mileage            Int?
+  energyType         EnergyType
+  chassisNumber      String?
+  productionDate     DateTime?
+  acquisitionDate    DateTime?
+  initialMileage     Float?
+  currentMileage     Float?
+  powerDIN           Float?
+  powerHP            Float?
+  batterySize        Float?
+  lastTechnicalCheck DateTime?
+  lastMaintenanceDone DateTime?
+  maintenanceFrequency MaintenanceFrequency?
+  fuelEntries        FuelEntry[]
+  maintenanceEntries MaintenanceEntry[]
+  status             VehicleStatus @default(ACTIVE)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+}
+
+enum EnergyType {
+  GASOLINE
+  DIESEL
+  GPL
+  HYBRID_GASOLINE
+  HYBRID_DIESEL
+  ELECTRIC
+  HYDROGEN
+}
+
+enum VehicleStatus {
+  ACTIVE
+  SOFT_DELETED
+}
+
+enum MaintenanceFrequency {
+  ANNUAL
+  BIENNIAL
+  EVERY_15000KM
+  EVERY_20000KM
+  EVERY_30000KM
+}
+
+model FuelEntry {
+  id             String    @id @default(uuid())
+  vehicleId      String
+  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id])
+  date           DateTime
+  mileage        Float
+  quantity       Float
+  unitPrice      Float
+  totalCost      Float
+  fuelType       String?
+  stationType    String?
+  status         EntryStatus @default(ACTIVE)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model MaintenanceEntry {
+  id             String    @id @default(uuid())
+  vehicleId      String
+  vehicle        Vehicle   @relation(fields: [vehicleId], references: [id])
+  date           DateTime
+  type           MaintenanceType
+  description    String
+  cost           Float
+  mileage        Float
+  providerName   String?
+  status         EntryStatus @default(ACTIVE)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+enum MaintenanceType {
+  ROUTINE
+  REPAIR
+  TECHNICAL_CHECK
+  OTHER
+}
+
+enum EntryStatus {
+  ACTIVE
+  SOFT_DELETED
+} 
