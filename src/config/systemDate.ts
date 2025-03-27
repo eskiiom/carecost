@@ -1,13 +1,11 @@
 export const getSystemDate = (): Date => {
-  const now = new Date();
-  // Pour les tests, on force la date au 26 mars 2024
-  now.setFullYear(2024);
-  now.setMonth(2); // 0-based index, 2 = mars
-  now.setDate(26);
-  return now;
+  return new Date();
 };
 
 export const isDateInFuture = (date: Date): boolean => {
-  const systemDate = getSystemDate();
-  return date > systemDate;
+  const systemDate = new Date();
+  // On compare seulement les dates (pas l'heure)
+  const dateWithoutTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const systemDateWithoutTime = new Date(systemDate.getFullYear(), systemDate.getMonth(), systemDate.getDate());
+  return dateWithoutTime > systemDateWithoutTime;
 }; 

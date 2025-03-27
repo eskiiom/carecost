@@ -29,6 +29,11 @@ export const VehicleDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [newEntry, setNewEntry] = useState({
+    mileage: 0,
+    volume: 0,
+    pricePerLiter: 0,
+  });
 
   const fetchVehicle = async () => {
     try {

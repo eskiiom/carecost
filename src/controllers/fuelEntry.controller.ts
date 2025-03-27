@@ -9,32 +9,49 @@ export class FuelEntryController {
   async create(req: Request, res: Response) {
     try {
       const data = req.body;
+      console.log('Données reçues:', data);
+      console.log('Headers:', req.headers);
       
       // Valider les données
-      const validationError = validateFuelEntry(data);
+      const validationError = await validateFuelEntry(data);
       if (validationError) {
+        console.log('Erreur de validation:', validationError);
         return res.status(400).json({ message: validationError });
       }
 
       // Créer l'entrée
+      const { forceMileageUpdate, missedFillup, ...prismaData } = data;
       const newEntry = await prisma.fuelEntry.create({
         data: {
-          ...data,
+          ...prismaData,
           date: new Date(data.date)
         }
       });
 
       // Mettre à jour le kilométrage du véhicule si c'est l'entrée la plus récente
-      const isLatestEntry = await prisma.fuelEntry.count({
+      console.log('Vérification si entrée la plus récente...');
+      const latestEntry = await prisma.fuelEntry.findFirst({
         where: {
           vehicleId: data.vehicleId,
-          date: {
-            gt: data.date
-          }
-        }
-      }) === 0;
+        },
+        orderBy: [
+          { mileage: 'desc' },
+          { date: 'desc' }
+        ]
+      });
+      
+      console.log('Dernière entrée trouvée:', latestEntry);
+      console.log('Nouvelle entrée:', newEntry);
+      
+      const isLatestEntry = !latestEntry || (
+        newEntry.mileage >= latestEntry.mileage && 
+        new Date(newEntry.date) >= new Date(latestEntry.date)
+      );
+
+      console.log('Est la plus récente:', isLatestEntry);
 
       if (isLatestEntry) {
+        console.log('Mise à jour du kilométrage du véhicule à:', data.mileage);
         await prisma.vehicle.update({
           where: { id: data.vehicleId },
           data: { currentMileage: data.mileage }
@@ -96,7 +113,7 @@ export class FuelEntryController {
       const data = req.body;
 
       // Valider les données
-      const validationError = validateFuelEntry(data);
+      const validationError = await validateFuelEntry(data);
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
@@ -111,10 +128,11 @@ export class FuelEntryController {
       }
 
       // Mettre à jour l'entrée
+      const { missedFillup, ...prismaData } = data;
       const updatedEntry = await prisma.fuelEntry.update({
         where: { id },
         data: {
-          ...data,
+          ...prismaData,
           date: new Date(data.date)
         }
       });
@@ -124,7 +142,7 @@ export class FuelEntryController {
         where: {
           vehicleId: data.vehicleId,
           date: {
-            gt: data.date
+            gt: new Date(data.date)
           }
         }
       }) === 0;

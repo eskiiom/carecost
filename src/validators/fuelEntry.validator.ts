@@ -44,6 +44,8 @@ export const validateFuelEntry = async (data: any) => {
 
   // Vérifier que la date n'est pas dans le futur
   const entryDate = new Date(date);
+  console.log('Date entrée:', entryDate);
+  console.log('Date système:', new Date());
   if (isDateInFuture(entryDate)) {
     return 'La date ne peut pas être dans le futur';
   }
