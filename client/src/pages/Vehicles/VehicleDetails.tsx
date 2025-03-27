@@ -100,7 +100,17 @@ export const VehicleDetails: React.FC = () => {
             <h1 className="text-2xl font-bold text-gray-900">
               {vehicle.brand} {vehicle.model}
             </h1>
-            <p className="text-gray-500">{vehicle.licensePlate}</p>
+            <div className="flex items-center space-x-4 text-gray-500">
+              <p>{vehicle.licensePlate}</p>
+              <span>•</span>
+              <p>{getEnergyTypeLabel(vehicle.energyType)}</p>
+              {vehicle.currentMileage && (
+                <>
+                  <span>•</span>
+                  <p>{vehicle.currentMileage.toLocaleString()} km</p>
+                </>
+              )}
+            </div>
           </div>
           <button
             onClick={() => navigate('/vehicles')}
