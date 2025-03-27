@@ -31,6 +31,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
   const [showForm, setShowForm] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<FuelEntry | undefined>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [vehicle, setVehicle] = useState<any | null>(null);
 
   const fetchEntries = async () => {
     try {
@@ -66,8 +67,35 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     }
   };
 
+  const fetchVehicle = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Non authentifié');
+        return;
+      }
+
+      const response = await axios.get(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      setVehicle(response.data);
+    } catch (err) {
+      console.error('Erreur lors de la récupération du véhicule:', err);
+    }
+  };
+
   useEffect(() => {
     fetchEntries();
+  }, [vehicleId]);
+
+  useEffect(() => {
+    fetchVehicle();
   }, [vehicleId]);
 
   const handleEdit = (entry: FuelEntry) => {
@@ -94,6 +122,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
 
       // Rafraîchir la liste et les infos du véhicule
       fetchEntries();
+      fetchVehicle();
       onUpdate();
       setShowDeleteConfirm(null);
     } catch (err) {
@@ -110,6 +139,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     setShowForm(false);
     setEntryToEdit(undefined);
     fetchEntries();
+    fetchVehicle();
     onUpdate();
   };
 
@@ -144,6 +174,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
             setShowForm(false);
             setEntryToEdit(undefined);
           }}
+          currentMileage={vehicle?.currentMileage}
         />
       </div>
     );

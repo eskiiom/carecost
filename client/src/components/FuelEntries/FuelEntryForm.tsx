@@ -8,6 +8,7 @@ interface FuelEntryFormProps {
   entryToEdit?: FuelEntry;
   onSuccess: () => void;
   onCancel: () => void;
+  currentMileage?: number;
 }
 
 interface FuelEntry {
@@ -35,7 +36,8 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   vehicleId,
   entryToEdit,
   onSuccess,
-  onCancel
+  onCancel,
+  currentMileage
 }) => {
   const [formData, setFormData] = useState<FuelEntry>({
     vehicleId,
@@ -50,6 +52,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   });
 
   const [tempValues, setTempValues] = useState({
+    mileage: '',
     quantity: '',
     unitPrice: '',
     totalCost: ''
@@ -58,6 +61,8 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [lastKnownMileage, setLastKnownMileage] = useState<number | null>(null);
+  const [forceMileageUpdate, setForceMileageUpdate] = useState(false);
 
   useEffect(() => {
     if (entryToEdit) {
@@ -76,12 +81,59 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
 
       // Initialiser les valeurs temporaires avec les valeurs existantes
       setTempValues({
+        mileage: entryToEdit.mileage.toString(),
         quantity: entryToEdit.quantity.toString(),
         unitPrice: entryToEdit.unitPrice.toString(),
         totalCost: entryToEdit.totalCost.toString()
       });
+    } else {
+      // Réinitialiser les valeurs temporaires quand on crée une nouvelle entrée
+      setTempValues({
+        mileage: '',
+        quantity: '',
+        unitPrice: '',
+        totalCost: ''
+      });
     }
   }, [entryToEdit]);
+
+  useEffect(() => {
+    const fetchLastKnownMileage = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Si on a un kilométrage actuel, on l'utilise
+        if (currentMileage) {
+          setLastKnownMileage(currentMileage);
+          return;
+        }
+
+        // Sinon on récupère le dernier kilométrage des entrées
+        const response = await axios.get<FuelEntry[]>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries/vehicle/${vehicleId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        );
+
+        // Trier par date décroissante et prendre le premier kilométrage
+        const sortedEntries = response.data.sort((a, b) => 
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        
+        if (sortedEntries.length > 0) {
+          setLastKnownMileage(sortedEntries[0].mileage);
+        }
+      } catch (err) {
+        console.error('Erreur lors de la récupération du dernier kilométrage:', err);
+      }
+    };
+
+    fetchLastKnownMileage();
+  }, [vehicleId, currentMileage]);
 
   const calculateMissingValue = () => {
     const qty = parseFloat(tempValues.quantity);
@@ -143,6 +195,12 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
     }
   };
 
+  // Fonction pour normaliser les nombres (accepte point et virgule)
+  const normalizeNumber = (value: string): string => {
+    // Remplace la virgule par un point
+    return value.replace(',', '.');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -171,6 +229,12 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         return;
       }
 
+      // Vérification du kilométrage
+      if (formData.mileage < (lastKnownMileage || 0) && !forceMileageUpdate) {
+        setError(`Le kilométrage saisi (${formData.mileage.toLocaleString()} km) est inférieur au dernier kilométrage connu (${lastKnownMileage?.toLocaleString()} km). Si cette valeur est correcte, cochez la case "Forcer la mise à jour du kilométrage" ci-dessous.`);
+        return;
+      }
+
       // Vérifier la cohérence du coût total
       const calculatedTotal = Number((formData.quantity * formData.unitPrice).toFixed(2));
 
@@ -192,7 +256,8 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         subscriptionStartDate: formData.subscriptionStartDate || null,
         subscriptionEndDate: formData.subscriptionEndDate || null,
         createdAt: entryToEdit?.createdAt,
-        updatedAt: entryToEdit?.updatedAt
+        updatedAt: entryToEdit?.updatedAt,
+        forceMileageUpdate: forceMileageUpdate
       };
 
       // Logs détaillés pour le débogage
@@ -279,16 +344,36 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         <div>
           <label className="block text-sm font-medium text-gray-700">
             Kilométrage
-            <input
-              type="number"
-              name="mileage"
-              value={formData.mileage}
-              onChange={handleInputChange}
-              min="0"
-              step="1"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              required
-            />
+            <div className="relative">
+              <input
+                type="number"
+                name="mileage"
+                value={tempValues.mileage}
+                onChange={(e) => {
+                  const value = normalizeNumber(e.target.value);
+                  setTempValues(prev => ({ ...prev, mileage: value }));
+                  setFormData(prev => ({ ...prev, mileage: parseFloat(value) || 0 }));
+                }}
+                min="0"
+                step="1"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                required
+                placeholder={lastKnownMileage ? `Dernier kilométrage connu: ${lastKnownMileage.toLocaleString()} km` : undefined}
+              />
+              {parseFloat(tempValues.mileage) < (lastKnownMileage || 0) && (
+                <div className="mt-2">
+                  <label className="inline-flex items-center text-sm text-gray-600">
+                    <input
+                      type="checkbox"
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 mr-2"
+                      checked={forceMileageUpdate}
+                      onChange={(e) => setForceMileageUpdate(e.target.checked)}
+                    />
+                    Forcer la mise à jour du kilométrage
+                  </label>
+                </div>
+              )}
+            </div>
           </label>
         </div>
 
@@ -296,14 +381,20 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
           <label className="block text-sm font-medium text-gray-700">
             Quantité (L)
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               name="quantity"
-              value={formData.quantity}
-              onChange={handleInputChange}
-              min="0.01"
-              step="0.01"
+              value={tempValues.quantity}
+              onChange={(e) => {
+                const value = normalizeNumber(e.target.value);
+                if (!/^[0-9]*[.,]?[0-9]*$/.test(value)) return;
+                setTempValues(prev => ({ ...prev, quantity: value }));
+                setFormData(prev => ({ ...prev, quantity: parseFloat(value) || 0 }));
+                calculateMissingValue();
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
+              placeholder="Ex: 45.5"
             />
           </label>
         </div>
@@ -312,14 +403,20 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
           <label className="block text-sm font-medium text-gray-700">
             Prix unitaire (€/L)
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               name="unitPrice"
-              value={formData.unitPrice}
-              onChange={handleInputChange}
-              min="0.001"
-              step="0.001"
+              value={tempValues.unitPrice}
+              onChange={(e) => {
+                const value = normalizeNumber(e.target.value);
+                if (!/^[0-9]*[.,]?[0-9]*$/.test(value)) return;
+                setTempValues(prev => ({ ...prev, unitPrice: value }));
+                setFormData(prev => ({ ...prev, unitPrice: parseFloat(value) || 0 }));
+                calculateMissingValue();
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
+              placeholder="Ex: 1.859"
             />
           </label>
         </div>
@@ -328,15 +425,20 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
           <label className="block text-sm font-medium text-gray-700">
             Coût total (€)
             <input
-              type="number"
+              type="text"
+              inputMode="decimal"
               name="totalCost"
-              value={formData.totalCost}
-              onChange={handleInputChange}
-              min="0.01"
-              step="0.01"
+              value={tempValues.totalCost}
+              onChange={(e) => {
+                const value = normalizeNumber(e.target.value);
+                if (!/^[0-9]*[.,]?[0-9]*$/.test(value)) return;
+                setTempValues(prev => ({ ...prev, totalCost: value }));
+                setFormData(prev => ({ ...prev, totalCost: parseFloat(value) || 0 }));
+                calculateMissingValue();
+              }}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               required
-              readOnly
+              placeholder="Ex: 84.50"
             />
           </label>
         </div>
@@ -438,7 +540,18 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
       </div>
 
       {error && (
-        <div className="mt-4 text-red-600">{error}</div>
+        <div className="mt-4 p-4 rounded-md bg-red-50 border border-red-200">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="flex justify-end space-x-3 mt-6">
