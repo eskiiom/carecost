@@ -21,9 +21,10 @@ interface FuelEntry {
 
 interface FuelEntriesListProps {
   vehicleId: string;
+  onUpdate: () => Promise<void>;
 }
 
-export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId }) => {
+export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onUpdate }) => {
   const [entries, setEntries] = useState<FuelEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -91,8 +92,9 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId }) =
         }
       );
 
-      // Rafraîchir la liste
+      // Rafraîchir la liste et les infos du véhicule
       fetchEntries();
+      onUpdate();
       setShowDeleteConfirm(null);
     } catch (err) {
       console.error('Erreur lors de la suppression:', err);
@@ -108,6 +110,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId }) =
     setShowForm(false);
     setEntryToEdit(undefined);
     fetchEntries();
+    onUpdate();
   };
 
   const getStationTypeLabel = (type?: string) => {

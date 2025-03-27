@@ -30,37 +30,37 @@ export const VehicleDetails: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchVehicle = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          setError('Non authentifié');
-          return;
-        }
-
-        const response = await axios.get<Vehicle>(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-
-        setVehicle(response.data);
-      } catch (err) {
-        console.error('Erreur lors de la récupération du véhicule:', err);
-        setError(
-          err instanceof Error 
-            ? err.message 
-            : 'Une erreur est survenue lors de la récupération du véhicule'
-        );
-      } finally {
-        setLoading(false);
+  const fetchVehicle = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Non authentifié');
+        return;
       }
-    };
 
+      const response = await axios.get<Vehicle>(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        }
+      );
+
+      setVehicle(response.data);
+    } catch (err) {
+      console.error('Erreur lors de la récupération du véhicule:', err);
+      setError(
+        err instanceof Error 
+          ? err.message 
+          : 'Une erreur est survenue lors de la récupération du véhicule'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (id) {
       fetchVehicle();
     }
@@ -217,7 +217,7 @@ export const VehicleDetails: React.FC = () => {
             <div>
               <div className="flex justify-between items-center mb-6">
               </div>
-              <FuelEntriesList vehicleId={vehicle.id} />
+              <FuelEntriesList vehicleId={vehicle.id} onUpdate={fetchVehicle} />
             </div>
           )}
 
