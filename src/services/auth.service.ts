@@ -1,25 +1,16 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import jwt, { SignOptions, Secret } from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { config } from '../config/config';
 import { RegisterDTO, LoginDTO, ResetPasswordDTO, UpdatePasswordDTO, AuthResponse } from '../types/auth.types';
 
 const prisma = new PrismaClient();
 
-type StringValue = string | undefined;
-
 export class AuthService {
-  private static generateToken(userId: string): string {
-    const options: SignOptions = {
+  private static generateToken(userId: string, role: string): string {
+    return jwt.sign({ userId, role }, config.jwt.secret as string, {
       expiresIn: '24h'
-    };
-    
-    return jwt.sign({ userId }, config.jwt.secret as Secret, options);
-  }
-
-  private static async hashPassword(password: string): Promise<string> {
-    const salt = await bcrypt.genSalt(10);
-    return bcrypt.hash(password, salt);
+    });
   }
 
   static async register(data: RegisterDTO): Promise<AuthResponse> {
@@ -31,7 +22,7 @@ export class AuthService {
       throw new Error('Un utilisateur avec cet email existe déjà');
     }
 
-    const hashedPassword = await this.hashPassword(data.password);
+    const hashedPassword = await bcrypt.hash(data.password, 10);
 
     const user = await prisma.user.create({
       data: {
@@ -39,25 +30,48 @@ export class AuthService {
         password: hashedPassword,
         firstName: data.firstName,
         lastName: data.lastName,
+        role: data.role || 'USER',
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        loginAttempts: true,
+        lastLoginAttempt: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+        password: true,
       },
     });
 
-    const token = this.generateToken(user.id);
+    const { password, ...userWithoutPassword } = user;
+    const token = this.generateToken(user.id, user.role);
 
     return {
+      user: userWithoutPassword,
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName || undefined,
-        lastName: user.lastName || undefined,
-      },
     };
   }
 
   static async login(data: LoginDTO): Promise<AuthResponse> {
     const user = await prisma.user.findUnique({
       where: { email: data.email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        loginAttempts: true,
+        lastLoginAttempt: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+        password: true,
+      },
     });
 
     if (!user) {
@@ -97,16 +111,12 @@ export class AuthService {
       },
     });
 
-    const token = this.generateToken(user.id);
+    const { password, ...userWithoutPassword } = user;
+    const token = this.generateToken(user.id, user.role);
 
     return {
+      user: userWithoutPassword,
       token,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName || undefined,
-        lastName: user.lastName || undefined,
-      },
     };
   }
 
@@ -127,34 +137,43 @@ export class AuthService {
     // TODO: Implémenter l'envoi d'email avec le lien de réinitialisation
     const resetToken = jwt.sign(
       { userId: user.id, purpose: 'reset' },
-      config.jwt.secret as Secret,
+      config.jwt.secret as string,
       options
     );
 
     console.log('Reset token:', resetToken);
   }
 
-  static async updatePassword(data: UpdatePasswordDTO): Promise<void> {
-    try {
-      const decoded = jwt.verify(data.token, config.jwt.secret as Secret) as { userId: string; purpose: string };
+  static async updatePassword(userId: string, data: UpdatePasswordDTO): Promise<void> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        loginAttempts: true,
+        lastLoginAttempt: true,
+        isBlocked: true,
+        createdAt: true,
+        updatedAt: true,
+        password: true,
+      },
+    });
 
-      if (decoded.purpose !== 'reset') {
-        throw new Error('Token invalide');
-      }
-
-      const hashedPassword = await this.hashPassword(data.newPassword);
-
-      await prisma.user.update({
-        where: { id: decoded.userId },
-        data: {
-          password: hashedPassword,
-          loginAttempts: 0,
-          lastLoginAttempt: null,
-          isBlocked: false,
-        },
-      });
-    } catch (error) {
-      throw new Error('Token invalide ou expiré');
+    if (!user) {
+      throw new Error('User not found');
     }
+
+    const isPasswordValid = await bcrypt.compare(data.currentPassword, user.password);
+    if (!isPasswordValid) {
+      throw new Error('Current password is incorrect');
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: await bcrypt.hash(data.password, 10) },
+    });
   }
 } 

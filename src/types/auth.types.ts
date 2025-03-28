@@ -1,8 +1,11 @@
+export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+
 export interface RegisterDTO {
   email: string;
   password: string;
   firstName?: string;
   lastName?: string;
+  role?: UserRole;
 }
 
 export interface LoginDTO {
@@ -15,16 +18,22 @@ export interface ResetPasswordDTO {
 }
 
 export interface UpdatePasswordDTO {
-  token: string;
-  newPassword: string;
+  currentPassword: string;
+  password: string;
 }
 
 export interface AuthResponse {
-  token: string;
   user: {
     id: string;
     email: string;
-    firstName?: string;
-    lastName?: string;
+    firstName: string | null;
+    lastName: string | null;
+    role: UserRole;
+    loginAttempts: number;
+    lastLoginAttempt: Date | null;
+    isBlocked: boolean;
+    createdAt: Date;
+    updatedAt: Date;
   };
+  token: string;
 } 

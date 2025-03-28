@@ -128,12 +128,15 @@ export class FuelEntryController {
       }
 
       // Mettre à jour l'entrée
-      const { missedFillup, ...prismaData } = data;
+      const { missedFillup, vehicleId, forceMileageUpdate, createdAt, updatedAt, ...prismaData } = data;
       const updatedEntry = await prisma.fuelEntry.update({
         where: { id },
         data: {
           ...prismaData,
-          date: new Date(data.date)
+          date: new Date(data.date),
+          vehicle: {
+            connect: { id: vehicleId }
+          }
         }
       });
 

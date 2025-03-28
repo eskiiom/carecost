@@ -9,11 +9,7 @@ export class AuthController {
       const result = await AuthService.register(data);
       res.status(201).json(result);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de l\'inscription' });
-      }
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Une erreur est survenue' });
     }
   }
 
@@ -23,11 +19,7 @@ export class AuthController {
       const result = await AuthService.login(data);
       res.json(result);
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de la connexion' });
-      }
+      res.status(401).json({ error: error instanceof Error ? error.message : 'Email ou mot de passe incorrect' });
     }
   }
 
@@ -43,15 +35,16 @@ export class AuthController {
 
   static async updatePassword(req: Request, res: Response) {
     try {
+      const userId = req.user?.id;
+      if (!userId) {
+        return res.status(401).json({ error: 'Non authentifié' });
+      }
+
       const data: UpdatePasswordDTO = req.body;
-      await AuthService.updatePassword(data);
+      await AuthService.updatePassword(userId, data);
       res.json({ message: 'Mot de passe mis à jour avec succès' });
     } catch (error) {
-      if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de la mise à jour du mot de passe' });
-      }
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Une erreur est survenue' });
     }
   }
 } 

@@ -13,6 +13,7 @@ model User {
   password         String
   firstName        String?
   lastName         String?
+  role             UserRole  @default(USER)
   loginAttempts    Int       @default(0)
   lastLoginAttempt DateTime?
   isBlocked        Boolean   @default(false)
@@ -113,6 +114,7 @@ enum MaintenanceType {
   ROUTINE
   REPAIR
   TECHNICAL_CHECK
+  TIRES
   OTHER
 }
 
@@ -131,4 +133,10 @@ enum RechargeType {
   FAST
   NORMAL
   SLOW
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  SUPER_ADMIN
 }

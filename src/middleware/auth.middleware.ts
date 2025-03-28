@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { config } from '../config/config';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -10,6 +10,7 @@ declare global {
     interface Request {
       user?: {
         id: string;
+        role: UserRole;
       };
     }
   }
@@ -28,10 +29,15 @@ export const authenticate = async (
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, config.jwt.secret) as { userId: string };
+    const decoded = jwt.verify(token, config.jwt.secret) as { userId: string; role: string };
 
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
+      select: {
+        id: true,
+        role: true,
+        isBlocked: true,
+      },
     });
 
     if (!user) {
@@ -42,9 +48,24 @@ export const authenticate = async (
       return res.status(403).json({ message: 'Compte bloqué' });
     }
 
-    req.user = { id: user.id };
+    req.user = { id: user.id, role: user.role };
     next();
   } catch (error) {
-    return res.status(401).json({ message: 'Token invalide ou expiré' });
+    console.error('Erreur d\'authentification:', error);
+    return res.status(401).json({ message: 'Token invalide' });
   }
+};
+
+export const requireRole = (roles: UserRole[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Non authentifié' });
+    }
+
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Accès non autorisé' });
+    }
+
+    next();
+  };
 }; 

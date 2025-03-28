@@ -4,6 +4,7 @@ import axios from 'axios';
 import { ConsumptionChartContainer } from '../../components/ConsumptionChartContainer';
 import { FuelEntriesList } from '../../components/FuelEntries/FuelEntriesList';
 import { MaintenanceList } from '../../components/Maintenance/MaintenanceList';
+import { MaintenanceForm } from '../../components/Maintenance/MaintenanceForm';
 
 interface Vehicle {
   id: string;
@@ -18,6 +19,23 @@ interface Vehicle {
   powerHP?: number;
   batterySize?: number;
   chassisNumber?: string;
+  vin: string;
+  mileage: number;
+  fuelType: string;
+  maintenances?: {
+    id: string;
+    date: string;
+    description: string;
+    cost: number;
+    mileage: number;
+  }[];
+  fuelRecords?: {
+    id: string;
+    date: string;
+    quantity: number;
+    cost: number;
+    mileage: number;
+  }[];
 }
 
 type TabType = 'info' | 'fuel' | 'maintenance' | 'statistics';
@@ -29,14 +47,17 @@ export const VehicleDetails: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('info');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [newEntry, setNewEntry] = useState({
     mileage: 0,
     volume: 0,
     pricePerLiter: 0,
   });
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
 
   const fetchVehicle = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Non authentifié');
@@ -47,19 +68,14 @@ export const VehicleDetails: React.FC = () => {
         `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
         {
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`
           }
         }
       );
-
       setVehicle(response.data);
     } catch (err) {
-      console.error('Erreur lors de la récupération du véhicule:', err);
-      setError(
-        err instanceof Error 
-          ? err.message 
-          : 'Une erreur est survenue lors de la récupération du véhicule'
-      );
+      console.error('Erreur lors du chargement des détails du véhicule:', err);
+      setError('Une erreur est survenue lors du chargement des détails du véhicule');
     } finally {
       setLoading(false);
     }
@@ -84,16 +100,69 @@ export const VehicleDetails: React.FC = () => {
     return types[type] || type;
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setError('Non authentifié');
+        return;
+      }
+
+      await axios.delete(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      setSuccess('Véhicule supprimé avec succès');
+      setTimeout(() => navigate('/vehicles'), 2000);
+    } catch (err) {
+      console.error('Erreur lors de la suppression du véhicule:', err);
+      setError('Une erreur est survenue lors de la suppression du véhicule');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-4">Chargement...</div>;
   }
 
   if (error) {
-    return <div className="text-red-600 text-center py-4">{error}</div>;
+    return (
+      <div className="max-w-md mx-auto mt-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="max-w-md mx-auto mt-4">
+        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
+          {success}
+        </div>
+      </div>
+    );
   }
 
   if (!vehicle) {
-    return <div className="text-center py-4">Véhicule non trouvé</div>;
+    return (
+      <div className="max-w-md mx-auto mt-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          Véhicule non trouvé
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -117,12 +186,20 @@ export const VehicleDetails: React.FC = () => {
               )}
             </div>
           </div>
-          <button
-            onClick={() => navigate('/vehicles')}
-            className="text-gray-600 hover:text-gray-900"
-          >
-            ← Retour à la liste
-          </button>
+          <div className="space-x-4">
+            <button
+              onClick={() => navigate(`/vehicles/${id}/edit`)}
+              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Edit
+            </button>
+            <button
+              onClick={handleDelete}
+              className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+            >
+              Delete
+            </button>
+          </div>
         </div>
       </div>
 
@@ -242,11 +319,27 @@ export const VehicleDetails: React.FC = () => {
                 <h3 className="text-lg font-medium text-gray-900">Maintenance</h3>
                 <button
                   className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  onClick={() => {/* TODO: Ouvrir le formulaire d'ajout */}}
+                  onClick={() => {
+                    console.log('Bouton Ajouter une maintenance cliqué');
+                    setShowMaintenanceForm(true);
+                  }}
                 >
                   Ajouter une maintenance
                 </button>
               </div>
+              {showMaintenanceForm && (
+                <div className="mb-6">
+                  <MaintenanceForm
+                    vehicleId={vehicle.id}
+                    onSuccess={() => {
+                      setShowMaintenanceForm(false);
+                      // Rafraîchir la liste des maintenances
+                      window.location.reload();
+                    }}
+                    onCancel={() => setShowMaintenanceForm(false)}
+                  />
+                </div>
+              )}
               <MaintenanceList vehicleId={vehicle.id} />
             </div>
           )}

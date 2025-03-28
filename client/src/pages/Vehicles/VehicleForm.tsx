@@ -1,71 +1,129 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+
+interface VehicleFormData {
+  brand: string;
+  model: string;
+  year: number;
+  licensePlate: string;
+  energyType: string;
+  initialMileage: number;
+}
 
 interface VehicleResponse {
   id: string;
   brand: string;
   model: string;
+  year: number;
   licensePlate: string;
   energyType: string;
-  year: number;
   initialMileage: number;
 }
 
 export const VehicleForm: React.FC = () => {
-  const navigate = useNavigate();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<VehicleFormData>({
     brand: '',
     model: '',
     year: new Date().getFullYear(),
+    licensePlate: '',
     energyType: 'GASOLINE',
-    initialMileage: 0,
-    licensePlate: ''
+    initialMileage: 0
   });
-
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditMode = !!id;
+
+  useEffect(() => {
+    if (isEditMode) {
+      fetchVehicle();
+    }
+  }, [id]);
+
+  const fetchVehicle = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await axios.get<VehicleFormData>(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+      setFormData(response.data);
+    } catch (err) {
+      setError('Erreur lors du chargement du véhicule');
+      console.error('Error fetching vehicle:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(false);
-
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       if (!token) {
         setError('Non authentifié');
         return;
       }
 
-      const response = await axios.post<VehicleResponse>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles`,
-        formData,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+      if (isEditMode) {
+        await axios.put(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
           }
-        }
-      );
-
-      setSuccess(true);
-      setTimeout(() => {
-        navigate(`/vehicles/${response.data.id}`);
-      }, 1000);
+        );
+        setSuccess(true);
+        setTimeout(() => navigate('/vehicles'), 1000);
+      } else {
+        const response = await axios.post<VehicleResponse>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        setSuccess(true);
+        setTimeout(() => navigate(`/vehicles/${response.data.id}`), 1000);
+      }
     } catch (err) {
-      console.error('Erreur lors de la création du véhicule:', err);
+      console.error('Erreur lors de l\'enregistrement du véhicule:', err);
       setError(
         err instanceof Error 
           ? err.message 
-          : 'Une erreur est survenue lors de la création du véhicule'
+          : 'Une erreur est survenue lors de l\'enregistrement du véhicule'
       );
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (loading) {
+    return <div className="text-center py-4">Chargement...</div>;
+  }
+
   return (
     <div className="max-w-md mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Ajouter un véhicule</h1>
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+        {isEditMode ? 'Modifier le véhicule' : 'Ajouter un véhicule'}
+      </h1>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
@@ -75,7 +133,7 @@ export const VehicleForm: React.FC = () => {
       
       {success && (
         <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
-          Véhicule créé avec succès ! Redirection...
+          {isEditMode ? 'Véhicule modifié avec succès !' : 'Véhicule créé avec succès !'} Redirection...
         </div>
       )}
 
@@ -173,8 +231,9 @@ export const VehicleForm: React.FC = () => {
           <button
             type="submit"
             className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            disabled={loading}
           >
-            Créer le véhicule
+            {isEditMode ? 'Modifier le véhicule' : 'Créer le véhicule'}
           </button>
         </div>
       </form>
