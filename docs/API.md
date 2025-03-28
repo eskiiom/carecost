@@ -79,6 +79,33 @@
 - Les champs sont optionnels lors de la modification
 - Le kilométrage ne peut pas être inférieur au kilométrage historique maximum sauf si forceMileageUpdate=true
 
+### Statistiques de consommation
+
+#### Statistiques générales d'un véhicule
+- Endpoint : GET /api/consumption-statistics/vehicle/:vehicleId
+- Paramètres optionnels : startDate, endDate
+- Retourne :
+  - Consommation moyenne
+  - Coût total
+  - Distance totale
+  - Nombre d'entrées
+  - Période couverte
+
+#### Statistiques annuelles d'un véhicule
+- Endpoint : GET /api/consumption-statistics/vehicle/:vehicleId/yearly
+- Retourne les statistiques par année
+
+#### Historique de consommation
+- Endpoint : GET /api/consumption-statistics/vehicle/:vehicleId/history
+- Retourne l'historique détaillé des entrées de carburant
+
+### Kilométrage historique
+
+#### Récupération du kilométrage maximum historique
+- Endpoint : GET /api/vehicles/:id/historical-max-mileage
+- Retourne le kilométrage maximum enregistré pour le véhicule
+- Utilisé pour la validation des nouvelles entrées
+
 ## Problèmes de sécurité identifiés
 1. La vérification de l'authentification est présente mais pourrait être renforcée au niveau middleware
 2. Les validations de propriété (vérification que l'utilisateur est propriétaire du véhicule) sont présentes mais pourraient être centralisées
