@@ -4,7 +4,7 @@ import maintenanceEntryService from '../services/maintenanceEntry.service';
 class MaintenanceEntryController {
   async create(req: Request, res: Response) {
     try {
-      const { vehicleId, date, type, description, cost, mileage, providerName, forceMileageUpdate } = req.body;
+      const { vehicleId, date, type, description, cost, mileage, providerName, forceMileageUpdate, notes } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -65,7 +65,8 @@ class MaintenanceEntryController {
         mileage,
         userId,
         providerName,
-        forceMileageUpdate
+        forceMileageUpdate,
+        notes
       });
 
       return res.status(201).json({
@@ -125,7 +126,7 @@ class MaintenanceEntryController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const { date, type, description, cost, mileage, providerName, forceMileageUpdate } = req.body;
+      const { date, type, description, cost, mileage, providerName, forceMileageUpdate, notes } = req.body;
 
       if (!userId) {
         return res.status(401).json({ 
@@ -169,7 +170,8 @@ class MaintenanceEntryController {
         mileage,
         userId,
         providerName,
-        forceMileageUpdate
+        forceMileageUpdate,
+        notes
       });
 
       return res.json({

@@ -314,33 +314,40 @@ export const VehicleDetails: React.FC = () => {
           )}
 
           {activeTab === 'maintenance' && (
-            <div>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-medium text-gray-900">Maintenance</h3>
+            <div className="space-y-4">
+              <div className="flex justify-end">
                 <button
-                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                  onClick={() => {
-                    console.log('Bouton Ajouter une maintenance cliqué');
-                    setShowMaintenanceForm(true);
-                  }}
+                  onClick={() => setShowMaintenanceForm(true)}
+                  className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
                 >
                   Ajouter une maintenance
                 </button>
               </div>
               {showMaintenanceForm && (
-                <div className="mb-6">
-                  <MaintenanceForm
-                    vehicleId={vehicle.id}
-                    onSuccess={() => {
-                      setShowMaintenanceForm(false);
-                      // Rafraîchir la liste des maintenances
-                      window.location.reload();
-                    }}
-                    onCancel={() => setShowMaintenanceForm(false)}
-                  />
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-lg font-medium text-gray-900">Ajouter une maintenance</h2>
+                      <button
+                        onClick={() => setShowMaintenanceForm(false)}
+                        className="text-gray-400 hover:text-gray-500"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <MaintenanceForm
+                      vehicleId={vehicle.id}
+                      onSuccess={() => {
+                        setShowMaintenanceForm(false);
+                        fetchVehicle();
+                      }}
+                      onCancel={() => setShowMaintenanceForm(false)}
+                      onVehicleUpdate={fetchVehicle}
+                    />
+                  </div>
                 </div>
               )}
-              <MaintenanceList vehicleId={vehicle.id} />
+              <MaintenanceList vehicleId={vehicle.id} onVehicleUpdate={fetchVehicle} />
             </div>
           )}
 

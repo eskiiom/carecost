@@ -5,6 +5,16 @@ interface MaintenanceFormProps {
   vehicleId: string;
   onSuccess: () => void;
   onCancel: () => void;
+  onVehicleUpdate?: () => void;
+  initialData?: {
+    id: string;
+    date: string;
+    mileage: number;
+    description: string;
+    cost: number;
+    type: string;
+    notes?: string;
+  };
 }
 
 interface FormData {
@@ -34,15 +44,22 @@ interface Vehicle {
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   vehicleId,
   onSuccess,
-  onCancel
+  onCancel,
+  onVehicleUpdate,
+  initialData
 }) => {
+  const formatDateForInput = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState<FormData>({
-    date: new Date().toISOString().split('T')[0],
-    mileage: 0,
-    description: '',
-    cost: 0,
-    type: 'ROUTINE',
-    notes: '',
+    date: initialData?.date ? formatDateForInput(initialData.date) : new Date().toISOString().split('T')[0],
+    mileage: initialData?.mileage || 0,
+    description: initialData?.description || '',
+    cost: initialData?.cost || 0,
+    type: initialData?.type || 'ROUTINE',
+    notes: initialData?.notes || '',
     forceMileageUpdate: false
   });
 
@@ -139,8 +156,11 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         return;
       }
 
-      const response = await axios.post<ApiResponse>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries`,
+      const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries${initialData ? `/${initialData.id}` : ''}`;
+      const method = initialData ? 'put' : 'post';
+
+      const response = await axios[method]<ApiResponse>(
+        url,
         {
           ...formData,
           vehicleId
@@ -159,9 +179,14 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         return;
       }
 
+      // Appeler onVehicleUpdate si le kilométrage a été mis à jour
+      if (formData.mileage > (vehicle?.currentMileage || 0) || formData.forceMileageUpdate) {
+        onVehicleUpdate?.();
+      }
+
       onSuccess();
     } catch (error: unknown) {
-      console.error('Erreur lors de l\'ajout de la maintenance:', error);
+      console.error('Erreur lors de la modification de la maintenance:', error);
       
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { status: number; data: ApiResponse } };
@@ -172,7 +197,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             setFieldErrors(axiosError.response.data.errors);
           }
         } else {
-          setError('Une erreur est survenue lors de l\'ajout de la maintenance');
+          setError('Une erreur est survenue lors de la modification de la maintenance');
         }
       } else {
         setError('Une erreur inattendue est survenue');
@@ -223,19 +248,18 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           )}
         </div>
 
-        <div>
+        <div className="mb-4">
           <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-            Type
+            Type de maintenance
           </label>
           <select
             id="type"
             name="type"
             value={formData.type}
             onChange={handleInputChange}
-            className={`mt-1 block w-full rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 ${
-              fieldErrors.type ? 'border-red-300' : 'border-gray-300'
+            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm ${
+              fieldErrors.type ? 'border-red-500' : ''
             }`}
-            required
           >
             <option value="ROUTINE">Entretien de routine</option>
             <option value="REPAIR">Réparation</option>
@@ -244,7 +268,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             <option value="OTHER">Autre</option>
           </select>
           {fieldErrors.type && (
-            <p className="mt-1 text-sm text-red-600">{fieldErrors.type}</p>
+            <p className="mt-1 text-sm text-red-500">{fieldErrors.type}</p>
           )}
         </div>
 
@@ -332,9 +356,9 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           )}
         </div>
 
-        <div>
+        <div className="mb-4">
           <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-            Notes
+            Notes (optionnel)
           </label>
           <textarea
             id="notes"
@@ -342,7 +366,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             value={formData.notes}
             onChange={handleInputChange}
             rows={3}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            placeholder="Ajoutez des notes supplémentaires ici..."
           />
         </div>
 

@@ -1,65 +1,56 @@
-# Gestion de la Maintenance
+# Gestion des Maintenances
 
 ## Vue d'ensemble
-Le module de gestion de la maintenance permet aux utilisateurs de suivre et d'enregistrer les opérations de maintenance effectuées sur leurs véhicules. Il comprend des fonctionnalités pour ajouter, visualiser et supprimer des entrées de maintenance.
+Le module de gestion des maintenances permet aux utilisateurs de suivre l'historique des interventions sur leurs véhicules. Il comprend l'ajout, la modification et la suppression des entrées de maintenance, ainsi que la mise à jour automatique du kilométrage du véhicule.
 
 ## Fonctionnalités
 
-### 1. Ajout d'une entrée de maintenance
-- Interface utilisateur intuitive avec formulaire de saisie
-- Champs requis :
-  - Date de la maintenance
-  - Type de maintenance
-  - Kilométrage
-  - Coût
-  - Description (optionnelle)
-- Validation du kilométrage :
-  - Affichage du dernier kilométrage connu dans le placeholder du champ
-  - Option pour forcer la mise à jour du kilométrage si la valeur saisie est inférieure au dernier kilométrage connu
-  - L'option de forcement n'apparaît que lorsqu'un kilométrage inférieur est saisi
+### Entrées de Maintenance
+- Création d'une nouvelle entrée de maintenance
+- Modification d'une entrée existante
+- Suppression d'une entrée avec confirmation
+- Affichage de la liste des maintenances avec tri par date
+- Gestion des notes pour chaque maintenance
 
-### 2. Affichage des entrées
-- Liste chronologique des maintenances
-- Informations affichées :
-  - Date
-  - Type de maintenance
-  - Kilométrage
-  - Coût
-  - Description (si disponible)
+### Gestion du Kilométrage
+- Affichage du dernier kilométrage connu dans le formulaire
+- Validation du kilométrage pour éviter les valeurs inférieures au kilométrage actuel
+- Option pour forcer la mise à jour du kilométrage si nécessaire
+- Mise à jour automatique du kilométrage du véhicule si la nouvelle valeur est supérieure
 
-### 3. Suppression d'entrées
-- Possibilité de supprimer une entrée de maintenance
-- Confirmation requise avant la suppression
-- Mise à jour automatique de la liste après suppression
+### Interface Utilisateur
+- Modal pour l'ajout et la modification des maintenances
+- Tableau de bord avec toutes les entrées de maintenance
+- Confirmation avant suppression
+- Rafraîchissement automatique des données du véhicule après modification
+
+## Validation des Données
+- Vérification des champs obligatoires
+- Validation du kilométrage par rapport au kilométrage actuel du véhicule
+- Validation de la date (pas de dates futures)
+- Validation du coût (valeurs positives uniquement)
+
+## Gestion des Erreurs
+- Messages d'erreur contextuels pour chaque champ
+- Gestion des erreurs de l'API
+- Feedback visuel pour les actions utilisateur
 
 ## Architecture
+### Frontend
+- `MaintenanceForm.tsx`: Composant de formulaire pour l'ajout/modification
+- `MaintenanceList.tsx`: Composant d'affichage et gestion de la liste
+- Intégration dans `VehicleDetails.tsx` avec gestion d'état
 
-### Frontend (React + TypeScript)
-- `MaintenanceForm.tsx` : Composant de formulaire pour l'ajout d'entrées
-- `MaintenanceList.tsx` : Composant d'affichage des entrées avec options de suppression
-- Validation côté client pour assurer l'intégrité des données
-
-### Backend (Node.js + Express)
-- API RESTful pour la gestion des entrées de maintenance
-- Endpoints :
-  - GET /api/maintenance : Récupération des entrées
-  - POST /api/maintenance : Ajout d'une entrée
-  - DELETE /api/maintenance/:id : Suppression d'une entrée
-- Validation des données côté serveur
-
-## Validation et Gestion des Erreurs
-- Validation du kilométrage :
-  - Empêche les valeurs négatives
-  - Vérifie la cohérence avec le dernier kilométrage connu
-  - Permet le forcement de la mise à jour avec confirmation explicite
-- Messages d'erreur clairs et informatifs
-- Gestion des erreurs réseau et serveur
+### Backend
+- `maintenanceEntry.controller.ts`: Gestion des requêtes HTTP
+- `maintenanceEntry.service.ts`: Logique métier et validation
+- `maintenanceEntry.routes.ts`: Définition des routes API
 
 ## Améliorations Futures
-- Ajout de catégories de maintenance personnalisables
-- Système de rappels pour les maintenances programmées
 - Export des données de maintenance
-- Statistiques et analyses des coûts de maintenance
+- Filtres avancés dans la liste des maintenances
+- Rappels de maintenance programmée
+- Statistiques sur les coûts de maintenance
 
 ## Sécurité
 - Authentification requise pour toutes les opérations

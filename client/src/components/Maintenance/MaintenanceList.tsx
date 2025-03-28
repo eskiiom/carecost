@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { MaintenanceForm } from './MaintenanceForm';
 
 interface MaintenanceEntry {
   id: string;
@@ -13,6 +14,7 @@ interface MaintenanceEntry {
 
 interface MaintenanceListProps {
   vehicleId: string;
+  onVehicleUpdate?: () => void;
 }
 
 interface DeleteConfirmationModalProps {
@@ -58,12 +60,17 @@ const DeleteConfirmationModal: React.FC<DeleteConfirmationModalProps> = ({
   );
 };
 
-export const MaintenanceList: React.FC<MaintenanceListProps> = ({ vehicleId }) => {
+export const MaintenanceList: React.FC<MaintenanceListProps> = ({ 
+  vehicleId,
+  onVehicleUpdate
+}) => {
   const [entries, setEntries] = useState<MaintenanceEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<MaintenanceEntry | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEntry, setEditingEntry] = useState<MaintenanceEntry | null>(null);
 
   const fetchEntries = async () => {
     try {
@@ -141,6 +148,21 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({ vehicleId }) =
     }
   };
 
+  const handleEditClick = (entry: MaintenanceEntry) => {
+    setEditingEntry(entry);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditClose = () => {
+    setIsEditModalOpen(false);
+    setEditingEntry(null);
+  };
+
+  const handleEditSuccess = () => {
+    handleEditClose();
+    fetchEntries();
+  };
+
   if (loading) {
     return <div className="text-center py-4">Chargement des maintenances...</div>;
   }
@@ -184,13 +206,13 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({ vehicleId }) =
                 Description
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Notes
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Kilométrage
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Coût (€)
-              </th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Notes
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -209,16 +231,22 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({ vehicleId }) =
                 <td className="px-6 py-4 text-sm text-gray-900">
                   {entry.description}
                 </td>
+                <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">
+                  {entry.notes || '-'}
+                </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {entry.mileage.toLocaleString('fr-FR')} km
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {entry.cost.toFixed(2)} €
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {entry.notes || '-'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button
+                    onClick={() => handleEditClick(entry)}
+                    className="text-blue-600 hover:text-blue-900 mr-4"
+                  >
+                    Modifier
+                  </button>
                   <button
                     onClick={() => handleDeleteClick(entry)}
                     className="text-red-600 hover:text-red-900"
@@ -241,6 +269,29 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({ vehicleId }) =
         onConfirm={handleDeleteConfirm}
         description={selectedEntry ? `${getMaintenanceTypeLabel(selectedEntry.type)} - ${selectedEntry.description}` : ''}
       />
+
+      {isEditModalOpen && editingEntry && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Modifier la maintenance</h2>
+              <button
+                onClick={handleEditClose}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+            <MaintenanceForm
+              vehicleId={vehicleId}
+              onSuccess={handleEditSuccess}
+              onCancel={handleEditClose}
+              initialData={editingEntry}
+              onVehicleUpdate={onVehicleUpdate}
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }; 

@@ -39,6 +39,7 @@ class MaintenanceEntryService {
     mileage: number;
     userId: string;
     providerName?: string;
+    notes?: string;
     forceMileageUpdate?: boolean;
   }) {
     console.log(`[MaintenanceService] Création d'une nouvelle entrée de maintenance pour le véhicule ${data.vehicleId}`);
@@ -92,7 +93,8 @@ class MaintenanceEntryService {
         description: data.description,
         cost: data.cost,
         mileage: data.mileage,
-        providerName: data.providerName
+        providerName: data.providerName,
+        notes: data.notes
       }
     });
 
@@ -146,6 +148,7 @@ class MaintenanceEntryService {
     mileage?: number;
     userId: string;
     providerName?: string;
+    notes?: string;
     forceMileageUpdate?: boolean;
   }) {
     console.log(`[MaintenanceService] Mise à jour de l'entrée de maintenance ${id}`);
@@ -200,7 +203,8 @@ class MaintenanceEntryService {
         description: data.description,
         cost: data.cost,
         mileage: data.mileage,
-        providerName: data.providerName
+        providerName: data.providerName,
+        notes: data.notes
       }
     });
 
