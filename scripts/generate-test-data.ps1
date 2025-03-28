@@ -1,180 +1,207 @@
+# Configuration
+$API_URL = "http://localhost:3000/api"
+$EMAIL = "test@example.com"
+$PASSWORD = "Test123!"
+
+# Fonction pour effectuer une requête HTTP
+function Invoke-ApiRequest {
+    param (
+        [string]$Method,
+        [string]$Endpoint,
+        [object]$Body,
+        [string]$Token
+    )
+    
+    $headers = @{
+        "Content-Type" = "application/json"
+    }
+    
+    if ($Token) {
+        $headers["Authorization"] = "Bearer $Token"
+    }
+    
+    $response = Invoke-WebRequest -Uri "$API_URL$Endpoint" -Method $Method -Headers $headers -Body ($Body | ConvertTo-Json)
+    return $response.Content | ConvertFrom-Json
+}
+
 # Connexion et récupération du token
-$loginResponse = curl -X POST -H "Content-Type: application/json" -d '{"email":"test@example.com","password":"Test123!"}' http://localhost:3000/api/auth/login | ConvertFrom-Json
+Write-Host "Connexion..."
+$loginResponse = Invoke-ApiRequest -Method "POST" -Endpoint "/auth/login" -Body @{
+    email = $EMAIL
+    password = $PASSWORD
+}
 $token = $loginResponse.token
-$userId = $loginResponse.user.id
 
 if (-not $token) {
     Write-Error "Échec de la connexion. Vérifiez que le serveur est en cours d'exécution et que les identifiants sont corrects."
     exit 1
 }
 
-# Définition des véhicules de test
+Write-Host "Connexion réussie !"
+
+# Récupération de l'ID de l'utilisateur
+$userId = $loginResponse.user.id
+
+# Suppression des véhicules existants
+Write-Host "Suppression des véhicules existants..."
+$vehicles = Invoke-ApiRequest -Method "GET" -Endpoint "/vehicles" -Token $token
+foreach ($vehicle in $vehicles) {
+    Invoke-ApiRequest -Method "DELETE" -Endpoint "/vehicles/$($vehicle.id)" -Token $token
+    Write-Host "Véhicule supprimé : $($vehicle.brand) $($vehicle.model)"
+}
+
+# Données de test
 $vehicles = @(
     @{
+        userId = $userId
         brand = "Renault"
         model = "Clio"
-        year = 2019
-        licensePlate = "AA-123-BB"
+        year = 2018
+        licensePlate = "AB-123-CD"
         energyType = "GASOLINE"
-        initialMileage = 15000  # Kilométrage plus réaliste
+        initialMileage = 15000
+        maintenanceFrequency = "EVERY_15000KM"
         vin = "VF1RFB00066201234"
+        status = "ACTIVE"
     },
     @{
+        userId = $userId
         brand = "Peugeot"
-        model = "e-208"
-        year = 2021
-        licensePlate = "CC-456-DD"
-        energyType = "ELECTRIC"
-        initialMileage = 8000
-        vin = "VF3PUZKYZMT1234567"
+        model = "208"
+        year = 2019
+        licensePlate = "DE-456-FG"
+        energyType = "DIESEL"
+        initialMileage = 20000
+        maintenanceFrequency = "EVERY_20000KM"
+        vin = "VF3PUZKYZMT123456"
+        status = "ACTIVE"
     },
     @{
-        brand = "Toyota"
-        model = "Corolla"
+        userId = $userId
+        brand = "Citroën"
+        model = "C3"
         year = 2020
-        licensePlate = "EE-789-FF"
-        energyType = "HYBRID_GASOLINE"
-        initialMileage = 12000
-        vin = "JTDDH3FH503123456"
+        licensePlate = "GH-789-IJ"
+        energyType = "ELECTRIC"
+        initialMileage = 5000
+        maintenanceFrequency = "ANNUAL"
+        vin = "VF7SXKFSEKT123456"
+        status = "ACTIVE"
     },
     @{
+        userId = $userId
         brand = "Volkswagen"
         model = "Golf"
-        year = 2018
-        licensePlate = "GG-012-HH"
+        year = 2017
+        licensePlate = "KL-012-MN"
         energyType = "DIESEL"
-        initialMileage = 25000
+        initialMileage = 45000
+        maintenanceFrequency = "EVERY_30000KM"
         vin = "WVWZZZAUZJW123456"
+        status = "ACTIVE"
     },
     @{
-        brand = "Hyundai"
-        model = "Nexo"
-        year = 2022
-        licensePlate = "II-345-JJ"
-        energyType = "HYDROGEN"
-        initialMileage = 5000
-        vin = "KMHDR81CBNU123456"
-    },
-    @{
-        brand = "Dacia"
-        model = "Sandero"
-        year = 2020
-        licensePlate = "KK-678-LL"
-        energyType = "GPL"
-        initialMileage = 18000
-        vin = "UU1BSDA1P45123456"
+        userId = $userId
+        brand = "Toyota"
+        model = "Yaris"
+        year = 2021
+        licensePlate = "OP-345-QR"
+        energyType = "HYBRID_GASOLINE"
+        initialMileage = 10000
+        maintenanceFrequency = "BIENNIAL"
+        vin = "JTDKN3DU60J123456"
+        status = "ACTIVE"
     }
 )
 
-# Fonction pour générer une date aléatoire dans les 6 derniers mois
+# Création des véhicules
+Write-Host "Création des véhicules..."
+$createdVehicles = @()
+
+foreach ($vehicle in $vehicles) {
+    $response = Invoke-ApiRequest -Method "POST" -Endpoint "/vehicles" -Body $vehicle -Token $token
+    $createdVehicles += $response
+    Write-Host "Véhicule créé : $($vehicle.brand) $($vehicle.model)"
+}
+
+# Fonction pour générer des dates aléatoires
 function Get-RandomDate {
-    $endDate = Get-Date
-    $startDate = $endDate.AddMonths(-6)
-    $randomTicks = Get-Random -Minimum $startDate.Ticks -Maximum $endDate.Ticks
+    param (
+        [DateTime]$StartDate,
+        [DateTime]$EndDate
+    )
+    $randomTicks = Get-Random -Minimum $StartDate.Ticks -Maximum $EndDate.Ticks
     return [DateTime]::new($randomTicks)
 }
 
-# Fonction pour générer un kilométrage croissant
-function Get-IncrementalMileage {
-    param (
-        [int]$baseKm,
-        [int]$increment
-    )
-    return $baseKm + $increment
-}
-
-# Pour chaque véhicule
-foreach ($vehicle in $vehicles) {
-    # Créer le véhicule
-    $vehicleJson = $vehicle | ConvertTo-Json
-    Write-Host "Création du véhicule: $($vehicle.brand) $($vehicle.model)"
-    $createdVehicle = $(curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $token" -d $vehicleJson http://localhost:3000/api/vehicles | ConvertFrom-Json)
-    $vehicleId = $createdVehicle.id
-
-    if (-not $vehicleId) {
-        Write-Error "Échec de la création du véhicule $($vehicle.brand) $($vehicle.model)"
-        continue
-    }
-
-    Write-Host "Véhicule créé avec l'ID: $vehicleId"
-
-    # Générer 3-5 entrées de carburant
-    $numEntries = Get-Random -Minimum 3 -Maximum 6
+# Création des entrées de carburant et de maintenance pour chaque véhicule
+foreach ($vehicle in $createdVehicles) {
+    Write-Host "`nGénération des données pour $($vehicle.brand) $($vehicle.model)..."
+    
+    # Dates de base
+    $startDate = (Get-Date).AddMonths(-12)
     $currentMileage = $vehicle.initialMileage
-    $dates = @()
-
-    # Générer d'abord toutes les dates pour assurer qu'elles sont dans l'ordre
-    for ($i = 1; $i -le $numEntries; $i++) {
-        $dates += Get-RandomDate
-    }
-    $dates = $dates | Sort-Object
-
-    Write-Host "Génération de $numEntries entrées de carburant"
-    for ($i = 0; $i -lt $numEntries; $i++) {
-        $mileageIncrement = Get-Random -Minimum 500 -Maximum 2000
-        $mileage = Get-IncrementalMileage -baseKm $currentMileage -increment $mileageIncrement
+    
+    # Création des entrées de carburant
+    $fuelEntriesCount = Get-Random -Minimum 3 -Maximum 6
+    for ($i = 0; $i -lt $fuelEntriesCount; $i++) {
+        $date = Get-RandomDate -StartDate $startDate -EndDate (Get-Date)
+        $mileage = $currentMileage + (Get-Random -Minimum 1000 -Maximum 5000)
         $currentMileage = $mileage
-
-        $quantity = if ($vehicle.energyType -eq "ELECTRIC") {
-            Get-Random -Minimum 30 -Maximum 60  # kWh
-        } else {
-            Get-Random -Minimum 30 -Maximum 50  # Litres
-        }
-
-        $unitPrice = if ($vehicle.energyType -eq "ELECTRIC") {
-            Get-Random -Minimum 0.15 -Maximum 0.25  # €/kWh
-        } else {
-            Get-Random -Minimum 1.5 -Maximum 2.2  # €/L
-        }
-
+        
+        $quantity = [math]::Round((Get-Random -Minimum 30 -Maximum 60), 2)
+        $unitPrice = [math]::Round((Get-Random -Minimum 1.5 -Maximum 2.2), 2)
         $totalCost = [math]::Round($quantity * $unitPrice, 2)
-
+        
         $fuelEntry = @{
-            vehicleId = $vehicleId
-            date = $dates[$i].ToString("yyyy-MM-dd")
+            vehicleId = $vehicle.id
+            date = $date.ToString("yyyy-MM-dd")
             mileage = $mileage
             quantity = $quantity
             unitPrice = $unitPrice
             totalCost = $totalCost
             stationType = "PUBLIC"
-        } | ConvertTo-Json
-
-        Write-Host "Ajout d'une entrée de carburant: $mileage km"
-        curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $token" -d $fuelEntry http://localhost:3000/api/fuel-entries
+            status = "ACTIVE"
+            notes = "Plein effectué à la station-service"
+        }
+        
+        Invoke-ApiRequest -Method "POST" -Endpoint "/fuel-entries" -Body $fuelEntry -Token $token
+        Write-Host "  Entrée carburant créée : $($date.ToString('dd/MM/yyyy'))"
     }
-
-    # Générer 3-5 entrées de maintenance
-    $numEntries = Get-Random -Minimum 3 -Maximum 6
-    $maintenanceTypes = @("ROUTINE", "REPAIR", "TECHNICAL_CHECK", "TIRES", "OTHER")
-    $dates = @()
-
-    # Générer d'abord toutes les dates pour assurer qu'elles sont dans l'ordre
-    for ($i = 1; $i -le $numEntries; $i++) {
-        $dates += Get-RandomDate
-    }
-    $dates = $dates | Sort-Object
-
-    Write-Host "Génération de $numEntries entrées de maintenance"
-    for ($i = 0; $i -lt $numEntries; $i++) {
-        $mileageIncrement = Get-Random -Minimum 0 -Maximum 1000
-        $mileage = Get-IncrementalMileage -baseKm $currentMileage -increment $mileageIncrement
-        $currentMileage = [math]::Max($mileage, $currentMileage)
-
+    
+    # Création des entrées de maintenance
+    $maintenanceEntriesCount = Get-Random -Minimum 2 -Maximum 4
+    for ($i = 0; $i -lt $maintenanceEntriesCount; $i++) {
+        $date = Get-RandomDate -StartDate $startDate -EndDate (Get-Date)
+        $mileage = $currentMileage + (Get-Random -Minimum 500 -Maximum 3000)
+        $currentMileage = $mileage
+        
+        $maintenanceTypes = @("ROUTINE", "REPAIR", "TECHNICAL_CHECK", "TIRES", "OTHER")
+        $maintenanceType = $maintenanceTypes | Get-Random
+        
+        $descriptions = @{
+            "ROUTINE" = "Maintenance de routine"
+            "REPAIR" = "Réparation effectuée"
+            "TECHNICAL_CHECK" = "Contrôle technique"
+            "TIRES" = "Changement des pneus"
+            "OTHER" = "Autre maintenance"
+        }
+        
         $maintenanceEntry = @{
-            vehicleId = $vehicleId
-            date = $dates[$i].ToString("yyyy-MM-dd")
-            type = $maintenanceTypes[(Get-Random -Maximum $maintenanceTypes.Count)]
-            description = "Maintenance planifiée"
-            cost = Get-Random -Minimum 50 -Maximum 500
+            vehicleId = $vehicle.id
+            date = $date.ToString("yyyy-MM-dd")
             mileage = $mileage
+            type = $maintenanceType
+            description = $descriptions[$maintenanceType]
+            cost = [math]::Round((Get-Random -Minimum 50 -Maximum 200), 2)
             providerName = "Garage Test"
-        } | ConvertTo-Json
-
-        Write-Host "Ajout d'une entrée de maintenance: $mileage km"
-        curl -X POST -H "Content-Type: application/json" -H "Authorization: Bearer $token" -d $maintenanceEntry http://localhost:3000/api/maintenance-entries
+            status = "ACTIVE"
+            notes = "Maintenance effectuée au garage"
+        }
+        
+        Invoke-ApiRequest -Method "POST" -Endpoint "/maintenance-entries" -Body $maintenanceEntry -Token $token
+        Write-Host "  Entrée maintenance créée : $($date.ToString('dd/MM/yyyy')) - $maintenanceType"
     }
-
-    Write-Host "Terminé pour le véhicule $($vehicle.brand) $($vehicle.model)`n"
 }
 
-Write-Host "Données de test générées avec succès !" 
+Write-Host "`nGénération des données de test terminée avec succès !" 
