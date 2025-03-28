@@ -8,7 +8,10 @@ class MaintenanceEntryController {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ message: 'Non authentifié' });
+        return res.status(401).json({ 
+          message: 'Non authentifié',
+          code: 'AUTH_REQUIRED'
+        });
       }
 
       // Validation des champs obligatoires
@@ -22,20 +25,24 @@ class MaintenanceEntryController {
 
       if (missingFields.length > 0) {
         return res.status(400).json({ 
-          message: `Les champs suivants sont obligatoires : ${missingFields.join(', ')}`
+          message: `Les champs suivants sont obligatoires : ${missingFields.join(', ')}`,
+          code: 'MISSING_FIELDS',
+          fields: missingFields
         });
       }
 
       // Validation des valeurs numériques
       if (isNaN(cost) || cost <= 0) {
         return res.status(400).json({ 
-          message: 'Le coût doit être un nombre positif'
+          message: 'Le coût doit être un nombre positif',
+          code: 'INVALID_COST'
         });
       }
 
       if (isNaN(mileage) || mileage < 0) {
         return res.status(400).json({ 
-          message: 'Le kilométrage doit être un nombre positif'
+          message: 'Le kilométrage doit être un nombre positif',
+          code: 'INVALID_MILEAGE'
         });
       }
 
@@ -44,7 +51,8 @@ class MaintenanceEntryController {
       const now = new Date();
       if (entryDate > now) {
         return res.status(400).json({ 
-          message: 'La date ne peut pas être dans le futur'
+          message: 'La date ne peut pas être dans le futur',
+          code: 'INVALID_DATE'
         });
       }
 
@@ -60,13 +68,36 @@ class MaintenanceEntryController {
         forceMileageUpdate
       });
 
-      res.status(201).json(maintenanceEntry);
+      return res.status(201).json({
+        message: 'Entrée de maintenance créée avec succès',
+        data: maintenanceEntry
+      });
     } catch (error) {
+      console.error('[MaintenanceController] Erreur lors de la création:', error);
+      
       if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de la création de l\'entrée de maintenance' });
+        if (error.message.includes('non trouvé') || error.message.includes('non autorisé')) {
+          return res.status(404).json({ 
+            message: error.message,
+            code: 'NOT_FOUND'
+          });
+        }
+        if (error.message.includes('kilométrage')) {
+          return res.status(400).json({ 
+            message: error.message,
+            code: 'INVALID_MILEAGE'
+          });
+        }
+        return res.status(400).json({ 
+          message: error.message,
+          code: 'VALIDATION_ERROR'
+        });
       }
+      
+      return res.status(500).json({ 
+        message: 'Une erreur est survenue lors de la création de l\'entrée de maintenance',
+        code: 'INTERNAL_ERROR'
+      });
     }
   }
 
@@ -97,29 +128,35 @@ class MaintenanceEntryController {
       const { date, type, description, cost, mileage, providerName, forceMileageUpdate } = req.body;
 
       if (!userId) {
-        return res.status(401).json({ message: 'Non authentifié' });
-      }
-
-      // Validation des valeurs numériques
-      if (cost && (isNaN(cost) || cost <= 0)) {
-        return res.status(400).json({ 
-          message: 'Le coût doit être un nombre positif'
+        return res.status(401).json({ 
+          message: 'Non authentifié',
+          code: 'AUTH_REQUIRED'
         });
       }
 
-      if (mileage && (isNaN(mileage) || mileage < 0)) {
+      // Validation des valeurs numériques si fournies
+      if (cost !== undefined && (isNaN(cost) || cost <= 0)) {
         return res.status(400).json({ 
-          message: 'Le kilométrage doit être un nombre positif'
+          message: 'Le coût doit être un nombre positif',
+          code: 'INVALID_COST'
         });
       }
 
-      // Validation de la date
+      if (mileage !== undefined && (isNaN(mileage) || mileage < 0)) {
+        return res.status(400).json({ 
+          message: 'Le kilométrage doit être un nombre positif',
+          code: 'INVALID_MILEAGE'
+        });
+      }
+
+      // Validation de la date si fournie
       if (date) {
         const entryDate = new Date(date);
         const now = new Date();
         if (entryDate > now) {
           return res.status(400).json({ 
-            message: 'La date ne peut pas être dans le futur'
+            message: 'La date ne peut pas être dans le futur',
+            code: 'INVALID_DATE'
           });
         }
       }
@@ -135,13 +172,36 @@ class MaintenanceEntryController {
         forceMileageUpdate
       });
 
-      res.json(updatedEntry);
+      return res.json({
+        message: 'Entrée de maintenance mise à jour avec succès',
+        data: updatedEntry
+      });
     } catch (error) {
+      console.error('[MaintenanceController] Erreur lors de la mise à jour:', error);
+      
       if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de la mise à jour de l\'entrée de maintenance' });
+        if (error.message.includes('non trouvé') || error.message.includes('non autorisé')) {
+          return res.status(404).json({ 
+            message: error.message,
+            code: 'NOT_FOUND'
+          });
+        }
+        if (error.message.includes('kilométrage')) {
+          return res.status(400).json({ 
+            message: error.message,
+            code: 'INVALID_MILEAGE'
+          });
+        }
+        return res.status(400).json({ 
+          message: error.message,
+          code: 'VALIDATION_ERROR'
+        });
       }
+      
+      return res.status(500).json({ 
+        message: 'Une erreur est survenue lors de la mise à jour de l\'entrée de maintenance',
+        code: 'INTERNAL_ERROR'
+      });
     }
   }
 
@@ -151,17 +211,34 @@ class MaintenanceEntryController {
       const userId = req.user?.id;
 
       if (!userId) {
-        return res.status(401).json({ message: 'Non authentifié' });
+        return res.status(401).json({ 
+          message: 'Non authentifié',
+          code: 'AUTH_REQUIRED'
+        });
       }
 
       await maintenanceEntryService.delete(id, userId);
-      res.status(204).send();
+      return res.status(204).send();
     } catch (error) {
+      console.error('[MaintenanceController] Erreur lors de la suppression:', error);
+      
       if (error instanceof Error) {
-        res.status(400).json({ message: error.message });
-      } else {
-        res.status(500).json({ message: 'Une erreur est survenue lors de la suppression de l\'entrée de maintenance' });
+        if (error.message.includes('non trouvé') || error.message.includes('non autorisé')) {
+          return res.status(404).json({ 
+            message: error.message,
+            code: 'NOT_FOUND'
+          });
+        }
+        return res.status(400).json({ 
+          message: error.message,
+          code: 'VALIDATION_ERROR'
+        });
       }
+      
+      return res.status(500).json({ 
+        message: 'Une erreur est survenue lors de la suppression de l\'entrée de maintenance',
+        code: 'INTERNAL_ERROR'
+      });
     }
   }
 }
