@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { format, parseISO } from 'date-fns';
 
 interface MaintenanceFormProps {
   vehicleId: string;
@@ -14,10 +15,12 @@ interface MaintenanceFormProps {
     cost: number;
     type: string;
     notes?: string;
+    providerName?: string;
   };
 }
 
 interface FormData {
+  vehicleId: string;
   date: string;
   mileage: number;
   description: string;
@@ -25,6 +28,7 @@ interface FormData {
   type: string;
   notes: string;
   forceMileageUpdate: boolean;
+  providerName?: string;
 }
 
 interface FieldErrors {
@@ -38,7 +42,19 @@ interface ApiResponse {
 }
 
 interface Vehicle {
-  currentMileage?: number;
+  id: string;
+  brand: string;
+  model: string;
+  licensePlate: string;
+  energyType: string;
+  year: number;
+  initialMileage: number;
+  historicalMaxMileage?: number;
+  powerDIN?: number;
+  powerHP?: number;
+  batterySize?: number;
+  chassisNumber?: string;
+  vin: string;
 }
 
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
@@ -54,13 +70,15 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   };
 
   const [formData, setFormData] = useState<FormData>({
+    vehicleId,
     date: initialData?.date ? formatDateForInput(initialData.date) : new Date().toISOString().split('T')[0],
     mileage: initialData?.mileage || 0,
     description: initialData?.description || '',
     cost: initialData?.cost || 0,
     type: initialData?.type || 'ROUTINE',
     notes: initialData?.notes || '',
-    forceMileageUpdate: false
+    forceMileageUpdate: false,
+    providerName: initialData?.providerName || ''
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -78,7 +96,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         }
 
         const response = await axios.get<Vehicle>(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}`,
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/historical-max-mileage`,
           {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -112,8 +130,8 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     // Validation du kilométrage
     if (formData.mileage <= 0) {
       errors.mileage = 'Le kilométrage doit être supérieur à 0';
-    } else if (!formData.forceMileageUpdate && vehicle?.currentMileage && formData.mileage < vehicle.currentMileage) {
-      errors.mileage = 'Le kilométrage ne peut pas être inférieur au kilométrage actuel';
+    } else if (!formData.forceMileageUpdate && vehicle?.historicalMaxMileage && formData.mileage < vehicle.historicalMaxMileage) {
+      errors.mileage = 'Le kilométrage ne peut pas être inférieur au kilométrage historique maximum';
     }
     
     // Validation de la description
@@ -141,12 +159,6 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setFieldErrors({});
-
-    if (!validateForm()) {
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -156,22 +168,82 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         return;
       }
 
-      const url = `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries${initialData ? `/${initialData.id}` : ''}`;
-      const method = initialData ? 'put' : 'post';
+      // Préparer les données pour l'envoi
+      let dataToSend: any = {};
 
-      const response = await axios[method]<ApiResponse>(
-        url,
-        {
-          ...formData,
-          vehicleId
-        },
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+      if (initialData) {
+        // Pour une modification, n'envoyer que les champs modifiés
+        if (formData.date !== format(parseISO(initialData.date), 'yyyy-MM-dd')) {
+          dataToSend.date = formData.date;
+        }
+        if (formData.type !== initialData.type) {
+          dataToSend.type = formData.type;
+        }
+        if (formData.description !== initialData.description) {
+          dataToSend.description = formData.description;
+        }
+        if (formData.cost !== initialData.cost) {
+          dataToSend.cost = Number(formData.cost);
+        }
+        if (formData.mileage !== initialData.mileage) {
+          dataToSend.mileage = Number(formData.mileage);
+          if (formData.forceMileageUpdate) {
+            dataToSend.forceMileageUpdate = true;
           }
         }
-      );
+        if (formData.notes !== initialData.notes) {
+          dataToSend.notes = formData.notes || null;
+        }
+        if (formData.providerName !== initialData.providerName) {
+          dataToSend.providerName = formData.providerName || null;
+        }
+
+        // Toujours inclure l'ID du véhicule
+        dataToSend.vehicleId = formData.vehicleId;
+      } else {
+        // Pour une nouvelle entrée, envoyer toutes les données nécessaires
+        dataToSend = {
+          vehicleId: formData.vehicleId,
+          date: formData.date,
+          type: formData.type,
+          description: formData.description,
+          mileage: Number(formData.mileage),
+          cost: Number(formData.cost),
+          notes: formData.notes || null,
+          providerName: formData.providerName || null
+        };
+      }
+
+      // Logs détaillés pour le débogage
+      console.log('Mode:', initialData ? 'Modification' : 'Création');
+      console.log('ID de l\'entrée:', initialData?.id);
+      console.log('Données originales:', initialData);
+      console.log('Données modifiées:', formData);
+      console.log('Données envoyées:', dataToSend);
+
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+
+      let response;
+      if (initialData) {
+        // Modification d'une entrée existante
+        response = await axios.put<ApiResponse>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries/${initialData.id}`,
+          dataToSend,
+          config
+        );
+      } else {
+        // Création d'une nouvelle entrée
+        response = await axios.post<ApiResponse>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries`,
+          dataToSend,
+          config
+        );
+      }
 
       if (response.data.code === 'VALIDATION_ERROR') {
         setFieldErrors(response.data.errors || {});
@@ -180,7 +252,7 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       }
 
       // Appeler onVehicleUpdate si le kilométrage a été mis à jour
-      if (formData.mileage > (vehicle?.currentMileage || 0) || formData.forceMileageUpdate) {
+      if (formData.mileage > (vehicle?.historicalMaxMileage || 0) || formData.forceMileageUpdate) {
         onVehicleUpdate?.();
       }
 
@@ -310,23 +382,14 @@ export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               required
               min="0"
               step="1"
-              placeholder={vehicle?.currentMileage !== undefined ? `Dernier kilométrage connu: ${vehicle.currentMileage.toLocaleString('fr-FR')} km` : ''}
+              placeholder={vehicle?.historicalMaxMileage !== undefined ? `Dernier kilométrage connu: ${vehicle.historicalMaxMileage.toLocaleString('fr-FR')} km` : ''}
             />
           </div>
-          {vehicle?.currentMileage && formData.mileage !== 0 && formData.mileage < vehicle.currentMileage && (
-            <div className="mt-2">
-              <label className="inline-flex items-center">
-                <input
-                  type="checkbox"
-                  name="forceMileageUpdate"
-                  checked={formData.forceMileageUpdate}
-                  onChange={handleInputChange}
-                  className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                />
-                <span className="ml-2 text-sm text-gray-600">
-                  Forcer la mise à jour du kilométrage
-                </span>
-              </label>
+          {vehicle?.historicalMaxMileage && formData.mileage !== 0 && formData.mileage < vehicle.historicalMaxMileage && (
+            <div className="text-yellow-600 text-sm mt-1">
+              Le kilométrage est inférieur au dernier kilométrage connu ({vehicle.historicalMaxMileage} km).
+              <br />
+              Cochez "Forcer la mise à jour" si c'est intentionnel.
             </div>
           )}
           {fieldErrors.mileage && (

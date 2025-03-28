@@ -197,7 +197,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
                 setShowForm(false);
                 setEntryToEdit(undefined);
               }}
-              currentMileage={vehicle?.currentMileage}
+              historicalMaxMileage={vehicle?.historicalMaxMileage}
             />
           </div>
         </div>

@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
+
+interface Vehicle {
+  id: string;
+  historicalMaxMileage?: number;
+  // ... autres champs ...
+}
 
 interface FuelEntryFormProps {
   vehicleId: string;
   entryToEdit?: FuelEntry;
   onSuccess: () => void;
   onCancel: () => void;
-  currentMileage?: number;
+  historicalMaxMileage?: number;
 }
 
 interface FuelEntry {
@@ -37,7 +43,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   entryToEdit,
   onSuccess,
   onCancel,
-  currentMileage
+  historicalMaxMileage
 }) => {
   const [formData, setFormData] = useState<FuelEntry>({
     vehicleId,
@@ -61,7 +67,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [lastKnownMileage, setLastKnownMileage] = useState<number | null>(null);
+  const [lastKnownMileage, setLastKnownMileage] = useState<number>(0);
   const [forceMileageUpdate, setForceMileageUpdate] = useState(false);
 
   useEffect(() => {
@@ -98,44 +104,12 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   }, [entryToEdit]);
 
   useEffect(() => {
-    const fetchLastKnownMileage = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        if (!token) return;
+    if (historicalMaxMileage) {
+      setLastKnownMileage(historicalMaxMileage);
+    }
+  }, [vehicleId, historicalMaxMileage]);
 
-        // Si on a un kilométrage actuel, on l'utilise
-        if (currentMileage) {
-          setLastKnownMileage(currentMileage);
-          return;
-        }
-
-        // Sinon on récupère le dernier kilométrage des entrées
-        const response = await axios.get<FuelEntry[]>(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries/vehicle/${vehicleId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
-
-        // Trier par date décroissante et prendre le premier kilométrage
-        const sortedEntries = response.data.sort((a, b) => 
-          new Date(b.date).getTime() - new Date(a.date).getTime()
-        );
-        
-        if (sortedEntries.length > 0) {
-          setLastKnownMileage(sortedEntries[0].mileage);
-        }
-      } catch (err) {
-        console.error('Erreur lors de la récupération du dernier kilométrage:', err);
-      }
-    };
-
-    fetchLastKnownMileage();
-  }, [vehicleId, currentMileage]);
-
-  const calculateMissingValue = () => {
+  const calculateMissingValue = useCallback(() => {
     const qty = parseFloat(tempValues.quantity);
     const price = parseFloat(tempValues.unitPrice);
     const total = parseFloat(tempValues.totalCost);
@@ -158,7 +132,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
       setTempValues(prev => ({ ...prev, unitPrice: newPrice.toString() }));
       setFormData(prev => ({ ...prev, quantity: qty, unitPrice: newPrice, totalCost: total }));
     }
-  };
+  }, [tempValues, setTempValues, setFormData]);
 
   useEffect(() => {
     // Calculer la valeur manquante après un court délai
@@ -167,10 +141,10 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [tempValues]);
+  }, [tempValues, calculateMissingValue]);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value, type } = e.target;
     
@@ -213,61 +187,70 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         return;
       }
 
-      // Validation des données
-      if (formData.quantity <= 0) {
-        setError('La quantité doit être supérieure à 0');
-        return;
-      }
-
-      if (formData.unitPrice <= 0) {
-        setError('Le prix unitaire doit être supérieur à 0');
-        return;
-      }
-
-      if (formData.mileage <= 0) {
-        setError('Le kilométrage doit être supérieur à 0');
-        return;
-      }
-
-      // Vérification du kilométrage
-      if (formData.mileage < (lastKnownMileage || 0) && !forceMileageUpdate) {
-        setError(`Le kilométrage saisi (${formData.mileage.toLocaleString()} km) est inférieur au dernier kilométrage connu (${lastKnownMileage?.toLocaleString()} km). Si cette valeur est correcte, cochez la case "Forcer la mise à jour du kilométrage" ci-dessous.`);
-        return;
-      }
-
-      // Vérifier la cohérence du coût total
-      const calculatedTotal = Number((formData.quantity * formData.unitPrice).toFixed(2));
-
       // Préparer les données pour l'envoi
-      const dataToSend = {
-        id: entryToEdit?.id,
-        vehicleId: formData.vehicleId,
-        date: formData.date,
-        mileage: Math.round(Number(formData.mileage)),
-        quantity: Number(formData.quantity),
-        unitPrice: Number(formData.unitPrice),
-        totalCost: calculatedTotal,
-        fuelType: formData.fuelType || null,
-        stationType: formData.stationType || null,
-        rechargeType: formData.rechargeType || null,
-        isSubscription: Boolean(formData.isSubscription),
-        missedFillup: Boolean(formData.missedFillup),
-        status: formData.status || 'ACTIVE',
-        subscriptionStartDate: formData.subscriptionStartDate || null,
-        subscriptionEndDate: formData.subscriptionEndDate || null,
-        createdAt: entryToEdit?.createdAt,
-        updatedAt: entryToEdit?.updatedAt,
-        forceMileageUpdate: forceMileageUpdate
-      };
+      let dataToSend: any = {};
+
+      if (entryToEdit) {
+        // Pour une modification, n'envoyer que les champs modifiés
+        if (formData.date !== format(parseISO(entryToEdit.date), 'yyyy-MM-dd')) {
+          dataToSend.date = formData.date;
+        }
+        if (formData.quantity !== entryToEdit.quantity) {
+          dataToSend.quantity = Number(formData.quantity);
+        }
+        if (formData.unitPrice !== entryToEdit.unitPrice) {
+          dataToSend.unitPrice = Number(formData.unitPrice);
+        }
+        if (formData.mileage !== entryToEdit.mileage) {
+          dataToSend.mileage = Number(formData.mileage);
+          if (forceMileageUpdate) {
+            dataToSend.forceMileageUpdate = true;
+          }
+        }
+        if (formData.notes !== entryToEdit.notes) {
+          dataToSend.notes = formData.notes || null;
+        }
+        if (formData.stationType !== entryToEdit.stationType) {
+          dataToSend.stationType = formData.stationType || null;
+        }
+        if (formData.missedFillup !== entryToEdit.missedFillup) {
+          dataToSend.missedFillup = formData.missedFillup;
+        }
+        if (formData.isSubscription !== entryToEdit.isSubscription) {
+          dataToSend.isSubscription = formData.isSubscription;
+        }
+        if (formData.subscriptionStartDate !== entryToEdit.subscriptionStartDate) {
+          dataToSend.subscriptionStartDate = formData.subscriptionStartDate;
+        }
+        if (formData.subscriptionEndDate !== entryToEdit.subscriptionEndDate) {
+          dataToSend.subscriptionEndDate = formData.subscriptionEndDate;
+        }
+
+        // Toujours inclure l'ID du véhicule
+        dataToSend.vehicleId = formData.vehicleId;
+      } else {
+        // Pour une nouvelle entrée, envoyer toutes les données nécessaires
+        dataToSend = {
+          vehicleId: formData.vehicleId,
+          date: formData.date,
+          mileage: Number(formData.mileage),
+          quantity: Number(formData.quantity),
+          unitPrice: Number(formData.unitPrice),
+          totalCost: Number((formData.quantity * formData.unitPrice).toFixed(2)),
+          missedFillup: formData.missedFillup,
+          notes: formData.notes || null,
+          stationType: formData.stationType || null,
+          isSubscription: formData.isSubscription,
+          subscriptionStartDate: formData.subscriptionStartDate,
+          subscriptionEndDate: formData.subscriptionEndDate
+        };
+      }
 
       // Logs détaillés pour le débogage
       console.log('Mode:', entryToEdit?.id ? 'Modification' : 'Création');
       console.log('ID de l\'entrée:', entryToEdit?.id);
-      console.log('Données originales:', {
-        ...formData,
-        calculatedTotal,
-        difference: Math.abs(calculatedTotal - formData.totalCost)
-      });
+      console.log('Données originales:', entryToEdit);
+      console.log('Données modifiées:', formData);
       console.log('Données envoyées:', dataToSend);
 
       const config = {
@@ -536,6 +519,20 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
               </div>
             </div>
           )}
+        </label>
+      </div>
+
+      <div className="mt-4">
+        <label className="block text-sm font-medium text-gray-700">
+          Notes
+          <textarea
+            name="notes"
+            value={formData.notes || ''}
+            onChange={handleInputChange}
+            rows={3}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Notes optionnelles sur cette entrée..."
+          />
         </label>
       </div>
 

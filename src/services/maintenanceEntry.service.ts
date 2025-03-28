@@ -6,11 +6,13 @@ interface VehicleUpdateData {
   mileage?: number;
   lastTechnicalCheck?: Date;
   nextTechnicalCheck?: Date;
-  currentMileage?: number;
 }
 
 class MaintenanceEntryService {
-  private calculateNextTechnicalCheckDate(currentCheckDate: Date): Date {
+  private calculateNextTechnicalCheckDate(currentCheckDate: Date | undefined): Date | undefined {
+    if (!currentCheckDate) {
+      return undefined;
+    }
     const nextDate = new Date(currentCheckDate);
     nextDate.setFullYear(nextDate.getFullYear() + 2); // Contrôle technique tous les 2 ans
     return nextDate;
@@ -30,9 +32,40 @@ class MaintenanceEntryService {
     return !!vehicle;
   }
 
+  private async getHistoricalMaxMileage(vehicleId: string): Promise<number> {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId }
+    });
+
+    if (!vehicle) {
+      throw new Error('Véhicule non trouvé');
+    }
+
+    // Récupérer le kilométrage maximum des entrées de carburant
+    const maxFuelEntry = await prisma.fuelEntry.findFirst({
+      where: { vehicleId },
+      orderBy: { mileage: 'desc' },
+      select: { mileage: true }
+    });
+
+    // Récupérer le kilométrage maximum des entrées de maintenance
+    const maxMaintenanceEntry = await prisma.maintenanceEntry.findFirst({
+      where: { vehicleId },
+      orderBy: { mileage: 'desc' },
+      select: { mileage: true }
+    });
+
+    // Retourner le maximum entre tous les kilométrages
+    return Math.max(
+      maxFuelEntry?.mileage || 0,
+      maxMaintenanceEntry?.mileage || 0,
+      vehicle.initialMileage || 0
+    );
+  }
+
   async create(data: {
     vehicleId: string;
-    date: Date;
+    date: string | Date;
     type: MaintenanceType;
     description: string;
     cost: number;
@@ -43,6 +76,9 @@ class MaintenanceEntryService {
     forceMileageUpdate?: boolean;
   }) {
     console.log(`[MaintenanceService] Création d'une nouvelle entrée de maintenance pour le véhicule ${data.vehicleId}`);
+
+    // Conversion de la date en objet Date
+    const entryDate = new Date(data.date);
 
     // Validation du type de maintenance
     if (!this.validateMaintenanceType(data.type)) {
@@ -69,8 +105,9 @@ class MaintenanceEntryService {
       throw new Error('Le kilométrage ne peut pas être négatif');
     }
 
-    if (!data.forceMileageUpdate && vehicle.currentMileage && data.mileage < vehicle.currentMileage) {
-      throw new Error('Le kilométrage ne peut pas être inférieur au kilométrage actuel du véhicule');
+    const maxMileage = await this.getHistoricalMaxMileage(data.vehicleId);
+    if (!data.forceMileageUpdate && data.mileage < maxMileage) {
+      throw new Error('Le kilométrage ne peut pas être inférieur au dernier kilométrage enregistré');
     }
 
     // Validation du coût
@@ -80,7 +117,7 @@ class MaintenanceEntryService {
 
     // Validation de la date
     const now = new Date();
-    if (data.date > now) {
+    if (entryDate > now) {
       throw new Error('La date ne peut pas être dans le futur');
     }
 
@@ -88,7 +125,7 @@ class MaintenanceEntryService {
     const maintenanceEntry = await prisma.maintenanceEntry.create({
       data: {
         vehicleId: data.vehicleId,
-        date: data.date,
+        date: entryDate,
         type: data.type,
         description: data.description,
         cost: data.cost,
@@ -98,21 +135,13 @@ class MaintenanceEntryService {
       }
     });
 
-    // Mise à jour du kilométrage du véhicule si nécessaire
-    if (data.forceMileageUpdate || !vehicle.currentMileage || data.mileage > vehicle.currentMileage) {
-      await prisma.vehicle.update({
-        where: { id: data.vehicleId },
-        data: { currentMileage: data.mileage }
-      });
-    }
-
     // Mise à jour des dates de contrôle technique si nécessaire
     if (data.type === MaintenanceType.TECHNICAL_CHECK) {
       await prisma.vehicle.update({
         where: { id: data.vehicleId },
         data: {
-          lastTechnicalCheck: data.date,
-          nextTechnicalCheck: this.calculateNextTechnicalCheckDate(data.date)
+          lastTechnicalCheck: entryDate,
+          nextTechnicalCheck: this.calculateNextTechnicalCheckDate(entryDate)
         }
       });
     }
@@ -141,7 +170,7 @@ class MaintenanceEntryService {
   }
 
   async update(id: string, data: {
-    date?: Date;
+    date?: string | Date;
     type?: MaintenanceType;
     description?: string;
     cost?: number;
@@ -170,14 +199,15 @@ class MaintenanceEntryService {
       throw new Error(`Type de maintenance invalide: ${data.type}`);
     }
 
-    // Validation du kilométrage si fourni
+    // Validation du kilométrage si fourni et modifié
     if (data.mileage !== undefined) {
       if (data.mileage < 0) {
         throw new Error('Le kilométrage ne peut pas être négatif');
       }
 
-      if (!data.forceMileageUpdate && entry.mileage && data.mileage < entry.mileage) {
-        throw new Error('Le kilométrage ne peut pas être inférieur au kilométrage actuel. Si vous souhaitez forcer la mise à jour, ajoutez le paramètre forceMileageUpdate à true.');
+      const maxMileage = await this.getHistoricalMaxMileage(entry.vehicleId);
+      if (!data.forceMileageUpdate && data.mileage < maxMileage) {
+        throw new Error('Le kilométrage ne peut pas être inférieur au dernier kilométrage enregistré. Si vous souhaitez forcer la mise à jour, ajoutez le paramètre forceMileageUpdate à true.');
       }
     }
 
@@ -188,8 +218,9 @@ class MaintenanceEntryService {
 
     // Validation de la date si fournie
     if (data.date) {
+      const entryDate = new Date(data.date);
       const now = new Date();
-      if (data.date > now) {
+      if (entryDate > now) {
         throw new Error('La date ne peut pas être dans le futur');
       }
     }
@@ -198,7 +229,7 @@ class MaintenanceEntryService {
     const updatedEntry = await prisma.maintenanceEntry.update({
       where: { id },
       data: {
-        date: data.date,
+        date: data.date ? new Date(data.date) : undefined,
         type: data.type,
         description: data.description,
         cost: data.cost,
@@ -208,37 +239,26 @@ class MaintenanceEntryService {
       }
     });
 
-    // Mise à jour du kilométrage du véhicule si nécessaire
-    if (data.mileage !== undefined) {
-      await prisma.vehicle.update({
-        where: { id: entry.vehicleId },
-        data: { currentMileage: data.mileage }
-      });
-    }
-
     // Mise à jour des dates de contrôle technique si nécessaire
-    if (data.type === MaintenanceType.TECHNICAL_CHECK) {
+    if (data.type === MaintenanceType.TECHNICAL_CHECK && data.date) {
+      const entryDate = new Date(data.date);
       await prisma.vehicle.update({
         where: { id: entry.vehicleId },
         data: {
-          lastTechnicalCheck: data.date || entry.date,
-          nextTechnicalCheck: this.calculateNextTechnicalCheckDate(data.date || entry.date)
+          lastTechnicalCheck: entryDate,
+          nextTechnicalCheck: this.calculateNextTechnicalCheckDate(entryDate)
         }
       });
     }
 
-    console.log(`[MaintenanceService] Entrée de maintenance mise à jour avec succès: ${id}`);
     return updatedEntry;
   }
 
   async delete(id: string, userId: string) {
-    console.log(`[MaintenanceService] Suppression de l'entrée de maintenance ${id}`);
-
-    // Vérification de l'existence et de la propriété
     const entry = await prisma.maintenanceEntry.findFirst({
       where: {
         id,
-        vehicle: { userId: userId }
+        vehicle: { userId }
       }
     });
 
@@ -246,12 +266,9 @@ class MaintenanceEntryService {
       throw new Error('Entrée de maintenance non trouvée ou non autorisée');
     }
 
-    // Suppression de l'entrée
     await prisma.maintenanceEntry.delete({
       where: { id }
     });
-
-    console.log(`[MaintenanceService] Entrée de maintenance supprimée avec succès: ${id}`);
   }
 }
 

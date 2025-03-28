@@ -23,33 +23,30 @@ model User {
 }
 
 model Vehicle {
-  id                   String                @id @default(uuid())
+  id                    String            @id @default(uuid())
   userId               String
   brand                String
   model                String
-  licensePlate         String                @unique
+  licensePlate         String
   energyType           EnergyType
-  chassisNumber        String?
-  productionDate       DateTime?
-  acquisitionDate      DateTime?
+  year                 Int
   initialMileage       Float?
-  currentMileage       Float?
   powerDIN             Float?
   powerHP              Float?
   batterySize          Float?
-  lastTechnicalCheck   DateTime?
+  chassisNumber        String?
+  vin                  String
+  status               VehicleStatus     @default(ACTIVE)
   maintenanceFrequency MaintenanceFrequency?
-  status               VehicleStatus         @default(ACTIVE)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
-  mileage              Int?
-  vin                  String?               @unique
-  year                 Int
-  lastMaintenanceDone  DateTime?
+  lastTechnicalCheck   DateTime?
   nextTechnicalCheck   DateTime?
-  fuelEntries          FuelEntry[]
-  maintenanceEntries   MaintenanceEntry[]
-  user                 User                  @relation(fields: [userId], references: [id])
+  maintenances         MaintenanceEntry[]
+  fuelRecords          FuelEntry[]
+  user                 User              @relation(fields: [userId], references: [id])
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@unique([userId, licensePlate])
 }
 
 model FuelEntry {
@@ -66,6 +63,7 @@ model FuelEntry {
   isSubscription       Boolean     @default(false)
   subscriptionStartDate DateTime?
   subscriptionEndDate   DateTime?
+  notes                String?     @db.Text
   status               EntryStatus @default(ACTIVE)
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt

@@ -11,6 +11,7 @@ router.use(authenticate);
 router.post('/', vehicleController.create);
 router.get('/', vehicleController.getByUserId);
 router.get('/:id', vehicleController.getById);
+router.get('/:id/historical-max-mileage', vehicleController.getHistoricalMaxMileage);
 router.put('/:id', vehicleController.update);
 router.delete('/:id', vehicleController.delete);
 

@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 import maintenanceEntryService from '../services/maintenanceEntry.service';
+import { validateMaintenanceEntry } from '../validators/maintenanceEntry.validator';
 
 class MaintenanceEntryController {
   async create(req: Request, res: Response) {
     try {
-      const { vehicleId, date, type, description, cost, mileage, providerName, forceMileageUpdate, notes } = req.body;
+      const data = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -14,59 +15,18 @@ class MaintenanceEntryController {
         });
       }
 
-      // Validation des champs obligatoires
-      const missingFields = [];
-      if (!vehicleId) missingFields.push('ID du véhicule');
-      if (!date) missingFields.push('date');
-      if (!type) missingFields.push('type');
-      if (!description) missingFields.push('description');
-      if (!cost) missingFields.push('coût');
-      if (!mileage) missingFields.push('kilométrage');
-
-      if (missingFields.length > 0) {
+      // Valider les données
+      const validationError = await validateMaintenanceEntry({ ...data, userId }, false);
+      if (validationError) {
         return res.status(400).json({ 
-          message: `Les champs suivants sont obligatoires : ${missingFields.join(', ')}`,
-          code: 'MISSING_FIELDS',
-          fields: missingFields
-        });
-      }
-
-      // Validation des valeurs numériques
-      if (isNaN(cost) || cost <= 0) {
-        return res.status(400).json({ 
-          message: 'Le coût doit être un nombre positif',
-          code: 'INVALID_COST'
-        });
-      }
-
-      if (isNaN(mileage) || mileage < 0) {
-        return res.status(400).json({ 
-          message: 'Le kilométrage doit être un nombre positif',
-          code: 'INVALID_MILEAGE'
-        });
-      }
-
-      // Validation de la date
-      const entryDate = new Date(date);
-      const now = new Date();
-      if (entryDate > now) {
-        return res.status(400).json({ 
-          message: 'La date ne peut pas être dans le futur',
-          code: 'INVALID_DATE'
+          message: validationError,
+          code: 'VALIDATION_ERROR'
         });
       }
 
       const maintenanceEntry = await maintenanceEntryService.create({
-        vehicleId,
-        date: entryDate,
-        type,
-        description,
-        cost,
-        mileage,
-        userId,
-        providerName,
-        forceMileageUpdate,
-        notes
+        ...data,
+        userId
       });
 
       return res.status(201).json({
@@ -126,7 +86,7 @@ class MaintenanceEntryController {
     try {
       const { id } = req.params;
       const userId = req.user?.id;
-      const { date, type, description, cost, mileage, providerName, forceMileageUpdate, notes } = req.body;
+      const data = req.body;
 
       if (!userId) {
         return res.status(401).json({ 
@@ -135,43 +95,18 @@ class MaintenanceEntryController {
         });
       }
 
-      // Validation des valeurs numériques si fournies
-      if (cost !== undefined && (isNaN(cost) || cost <= 0)) {
+      // Valider les données en mode mise à jour
+      const validationError = await validateMaintenanceEntry({ ...data, userId }, true);
+      if (validationError) {
         return res.status(400).json({ 
-          message: 'Le coût doit être un nombre positif',
-          code: 'INVALID_COST'
+          message: validationError,
+          code: 'VALIDATION_ERROR'
         });
-      }
-
-      if (mileage !== undefined && (isNaN(mileage) || mileage < 0)) {
-        return res.status(400).json({ 
-          message: 'Le kilométrage doit être un nombre positif',
-          code: 'INVALID_MILEAGE'
-        });
-      }
-
-      // Validation de la date si fournie
-      if (date) {
-        const entryDate = new Date(date);
-        const now = new Date();
-        if (entryDate > now) {
-          return res.status(400).json({ 
-            message: 'La date ne peut pas être dans le futur',
-            code: 'INVALID_DATE'
-          });
-        }
       }
 
       const updatedEntry = await maintenanceEntryService.update(id, {
-        date: date ? new Date(date) : undefined,
-        type,
-        description,
-        cost,
-        mileage,
-        userId,
-        providerName,
-        forceMileageUpdate,
-        notes
+        ...data,
+        userId
       });
 
       return res.json({

@@ -15,7 +15,7 @@ interface Vehicle {
   energyType: string;
   year: number;
   initialMileage: number;
-  currentMileage?: number;
+  historicalMaxMileage?: number;
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
@@ -37,6 +37,10 @@ interface Vehicle {
     cost: number;
     mileage: number;
   }[];
+}
+
+interface HistoricalMaxMileageResponse {
+  historicalMaxMileage: number;
 }
 
 type TabType = 'info' | 'fuel' | 'maintenance' | 'statistics';
@@ -67,15 +71,29 @@ export const VehicleDetails: React.FC = () => {
         return;
       }
 
-      const response = await axios.get<Vehicle>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
+      const [vehicleResponse, historicalResponse] = await Promise.all([
+        axios.get<Vehicle>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        }
-      );
-      setVehicle(response.data);
+        ),
+        axios.get<HistoricalMaxMileageResponse>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${id}/historical-max-mileage`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
+      ]);
+
+      setVehicle({
+        ...vehicleResponse.data,
+        historicalMaxMileage: historicalResponse.data.historicalMaxMileage
+      });
     } catch (err) {
       console.error('Erreur lors du chargement des détails du véhicule:', err);
       setError('Une erreur est survenue lors du chargement des détails du véhicule');
@@ -178,10 +196,10 @@ export const VehicleDetails: React.FC = () => {
               <p>{vehicle.licensePlate}</p>
               <span>•</span>
               <p>{getEnergyTypeLabel(vehicle.energyType)}</p>
-              {vehicle.currentMileage && (
+              {vehicle.historicalMaxMileage && (
                 <>
                   <span>•</span>
-                  <p>{vehicle.currentMileage.toLocaleString()} km</p>
+                  <p>{vehicle.historicalMaxMileage.toLocaleString()} km</p>
                 </>
               )}
             </div>
@@ -335,10 +353,10 @@ export const VehicleDetails: React.FC = () => {
                     <dt className="text-sm font-medium text-gray-500">Kilométrage initial</dt>
                     <dd className="mt-1 text-sm text-gray-900">{vehicle.initialMileage} km</dd>
                   </div>
-                  {vehicle.currentMileage && (
+                  {vehicle.historicalMaxMileage && (
                     <div>
                       <dt className="text-sm font-medium text-gray-500">Kilométrage actuel</dt>
-                      <dd className="mt-1 text-sm text-gray-900">{vehicle.currentMileage} km</dd>
+                      <dd className="mt-1 text-sm text-gray-900">{vehicle.historicalMaxMileage} km</dd>
                     </div>
                   )}
                   {vehicle.powerDIN && (

@@ -3,6 +3,7 @@ import { prisma } from '../config/database';
 import { Prisma } from '@prisma/client';
 import { getSystemDate, isDateInFuture } from '../config/systemDate';
 import { validateFuelEntry } from '../validators/fuelEntry.validator';
+import vehicleService from '../services/vehicle.service';
 
 export class FuelEntryController {
   // Créer une nouvelle entrée de carburant/recharge
@@ -27,36 +28,6 @@ export class FuelEntryController {
           date: new Date(data.date)
         }
       });
-
-      // Mettre à jour le kilométrage du véhicule si c'est l'entrée la plus récente
-      console.log('Vérification si entrée la plus récente...');
-      const latestEntry = await prisma.fuelEntry.findFirst({
-        where: {
-          vehicleId: data.vehicleId,
-        },
-        orderBy: [
-          { mileage: 'desc' },
-          { date: 'desc' }
-        ]
-      });
-      
-      console.log('Dernière entrée trouvée:', latestEntry);
-      console.log('Nouvelle entrée:', newEntry);
-      
-      const isLatestEntry = !latestEntry || (
-        newEntry.mileage >= latestEntry.mileage && 
-        new Date(newEntry.date) >= new Date(latestEntry.date)
-      );
-
-      console.log('Est la plus récente:', isLatestEntry);
-
-      if (isLatestEntry) {
-        console.log('Mise à jour du kilométrage du véhicule à:', data.mileage);
-        await prisma.vehicle.update({
-          where: { id: data.vehicleId },
-          data: { currentMileage: data.mileage }
-        });
-      }
 
       res.status(201).json(newEntry);
     } catch (error) {
@@ -128,46 +99,14 @@ export class FuelEntryController {
       }
 
       // Mettre à jour l'entrée
-      const { missedFillup, vehicleId, forceMileageUpdate, createdAt, updatedAt, ...prismaData } = data;
+      const { forceMileageUpdate, missedFillup, ...updateData } = data;
       const updatedEntry = await prisma.fuelEntry.update({
         where: { id },
         data: {
-          ...prismaData,
-          date: new Date(data.date),
-          vehicle: {
-            connect: { id: vehicleId }
-          }
+          ...updateData,
+          date: new Date(data.date)
         }
       });
-
-      // Vérifier si c'est l'entrée la plus récente
-      const isLatestEntry = await prisma.fuelEntry.count({
-        where: {
-          vehicleId: data.vehicleId,
-          date: {
-            gt: new Date(data.date)
-          }
-        }
-      }) === 0;
-
-      if (isLatestEntry) {
-        await prisma.vehicle.update({
-          where: { id: data.vehicleId },
-          data: { currentMileage: data.mileage }
-        });
-      } else if (existingEntry.mileage === (await prisma.vehicle.findUnique({ where: { id: data.vehicleId } }))?.currentMileage) {
-        // Si l'entrée modifiée était la référence pour le currentMileage, mettre à jour avec la plus récente
-        const latestEntry = await prisma.fuelEntry.findFirst({
-          where: { vehicleId: data.vehicleId },
-          orderBy: { date: 'desc' }
-        });
-        if (latestEntry) {
-          await prisma.vehicle.update({
-            where: { id: data.vehicleId },
-            data: { currentMileage: latestEntry.mileage }
-          });
-        }
-      }
 
       res.json(updatedEntry);
     } catch (error) {
@@ -182,78 +121,30 @@ export class FuelEntryController {
   async delete(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const userId = req.user?.id;
 
-      // 1. Récupérer l'entrée à supprimer pour avoir le vehicleId
-      const entryToDelete = await prisma.fuelEntry.findUnique({
-        where: { id },
+      if (!userId) {
+        return res.status(401).json({ message: 'Non authentifié' });
+      }
+
+      // Vérifier que l'entrée existe et appartient à l'utilisateur
+      const entryToDelete = await prisma.fuelEntry.findFirst({
+        where: {
+          id,
+          vehicle: {
+            userId
+          }
+        },
         include: {
           vehicle: true
         }
       });
 
       if (!entryToDelete) {
-        return res.status(404).json({ message: 'Entrée non trouvée' });
+        return res.status(404).json({ message: 'Entrée non trouvée ou non autorisée' });
       }
 
-      // 2. Vérifier si c'est l'entrée la plus récente
-      const isLatestEntry = await prisma.fuelEntry.count({
-        where: {
-          vehicleId: entryToDelete.vehicleId,
-          date: {
-            gt: entryToDelete.date
-          }
-        }
-      }) === 0;
-
-      // 3. Si c'est la plus récente, nous devons mettre à jour le kilométrage du véhicule
-      if (isLatestEntry) {
-        // Trouver l'entrée de carburant précédente la plus récente
-        const previousFuelEntry = await prisma.fuelEntry.findFirst({
-          where: {
-            vehicleId: entryToDelete.vehicleId,
-            date: {
-              lt: entryToDelete.date
-            }
-          },
-          orderBy: {
-            date: 'desc'
-          }
-        });
-
-        // Trouver la maintenance la plus récente
-        const latestMaintenance = await prisma.maintenanceEntry.findFirst({
-          where: {
-            vehicleId: entryToDelete.vehicleId,
-            date: {
-              lt: entryToDelete.date
-            }
-          },
-          orderBy: {
-            date: 'desc'
-          }
-        });
-
-        // Déterminer le kilométrage le plus récent entre l'entrée de carburant et la maintenance
-        let newCurrentMileage = entryToDelete.vehicle.initialMileage;
-        
-        if (previousFuelEntry && latestMaintenance) {
-          newCurrentMileage = previousFuelEntry.date > latestMaintenance.date 
-            ? previousFuelEntry.mileage 
-            : latestMaintenance.mileage;
-        } else if (previousFuelEntry) {
-          newCurrentMileage = previousFuelEntry.mileage;
-        } else if (latestMaintenance) {
-          newCurrentMileage = latestMaintenance.mileage;
-        }
-
-        // Mettre à jour le véhicule avec le nouveau kilométrage
-        await prisma.vehicle.update({
-          where: { id: entryToDelete.vehicleId },
-          data: { currentMileage: newCurrentMileage }
-        });
-      }
-
-      // 4. Supprimer l'entrée
+      // Supprimer l'entrée
       await prisma.fuelEntry.delete({
         where: { id }
       });

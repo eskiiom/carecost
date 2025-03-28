@@ -1,13 +1,66 @@
-import { PrismaClient, EnergyType, VehicleStatus, MaintenanceFrequency } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+// Define the enums locally to match the schema
+enum VehicleStatus {
+  ACTIVE = 'ACTIVE',
+  SOFT_DELETED = 'SOFT_DELETED'
+}
+
+enum MaintenanceFrequency {
+  ANNUAL = 'ANNUAL',
+  BIENNIAL = 'BIENNIAL',
+  EVERY_15000KM = 'EVERY_15000KM',
+  EVERY_20000KM = 'EVERY_20000KM',
+  EVERY_30000KM = 'EVERY_30000KM'
+}
+
+enum EnergyType {
+  GASOLINE = 'GASOLINE',
+  DIESEL = 'DIESEL',
+  GPL = 'GPL',
+  HYBRID_GASOLINE = 'HYBRID_GASOLINE',
+  HYBRID_DIESEL = 'HYBRID_DIESEL',
+  ELECTRIC = 'ELECTRIC',
+  HYDROGEN = 'HYDROGEN'
+}
+
+interface CreateVehicleDTO {
+  userId: string;
+  brand: string;
+  model: string;
+  licensePlate: string;
+  energyType: EnergyType;
+  year: number;
+  initialMileage: number;
+  powerDIN?: number;
+  powerHP?: number;
+  batterySize?: number;
+  chassisNumber?: string;
+  vin: string;
+}
+
+interface UpdateVehicleDTO {
+  brand?: string;
+  model?: string;
+  licensePlate?: string;
+  energyType?: EnergyType;
+  year?: number;
+  initialMileage?: number;
+  powerDIN?: number;
+  powerHP?: number;
+  batterySize?: number;
+  chassisNumber?: string;
+  vin?: string;
+}
 
 interface CreateVehicleData {
   brand: string;
   model: string;
   year: number;
   licensePlate: string;
-  vin?: string;
+  vin: string;
   mileage?: number;
   energyType: EnergyType;
   userId: string;
@@ -15,7 +68,6 @@ interface CreateVehicleData {
   productionDate?: Date;
   acquisitionDate?: Date;
   initialMileage?: number;
-  currentMileage?: number;
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
@@ -37,7 +89,6 @@ interface UpdateVehicleData {
   productionDate?: Date;
   acquisitionDate?: Date;
   initialMileage?: number;
-  currentMileage?: number;
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
@@ -182,6 +233,38 @@ class VehicleService {
     return prisma.vehicle.delete({
       where: { id }
     });
+  }
+
+  async getHistoricalMaxMileage(vehicleId: string): Promise<number> {
+    // Récupérer le véhicule
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId }
+    });
+
+    if (!vehicle) {
+      throw new Error('Véhicule non trouvé');
+    }
+
+    // Récupérer le kilométrage maximum des entrées de carburant
+    const maxFuelEntryMileage = await prisma.fuelEntry.findFirst({
+      where: { vehicleId },
+      orderBy: { mileage: 'desc' },
+      select: { mileage: true }
+    });
+
+    // Récupérer le kilométrage maximum des entrées de maintenance
+    const maxMaintenanceEntryMileage = await prisma.maintenanceEntry.findFirst({
+      where: { vehicleId },
+      orderBy: { mileage: 'desc' },
+      select: { mileage: true }
+    });
+
+    // Retourner le maximum entre tous les kilométrages
+    return Math.max(
+      vehicle.initialMileage || 0,
+      maxFuelEntryMileage?.mileage || 0,
+      maxMaintenanceEntryMileage?.mileage || 0
+    );
   }
 }
 

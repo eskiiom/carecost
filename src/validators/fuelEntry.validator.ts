@@ -1,4 +1,4 @@
-import { isDateInFuture } from '../config/systemDate';
+import { validateDate, validateDateRange, validateMileage, validateVehicleOwnership } from './common.validator';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -17,7 +17,8 @@ export const validateFuelEntry = async (data: any) => {
     isSubscription,
     subscriptionStartDate,
     subscriptionEndDate,
-    forceMileageUpdate
+    forceMileageUpdate,
+    userId
   } = data;
 
   // Vérifier les champs obligatoires
@@ -42,26 +43,26 @@ export const validateFuelEntry = async (data: any) => {
     return 'Le kilométrage doit être un nombre positif';
   }
 
-  // Vérifier que la date n'est pas dans le futur
-  const entryDate = new Date(date);
-  console.log('Date entrée:', entryDate);
-  console.log('Date système:', new Date());
-  if (isDateInFuture(entryDate)) {
-    return 'La date ne peut pas être dans le futur';
+  // Vérifier la date
+  const dateValidation = validateDate(date, 'l\'entrée');
+  if (!dateValidation.isValid) {
+    return dateValidation.message;
   }
 
-  // Vérifier que le véhicule existe
-  const vehicle = await prisma.vehicle.findUnique({
-    where: { id: vehicleId }
-  });
-
-  if (!vehicle) {
-    return 'Véhicule non trouvé';
+  // Vérifier que le véhicule existe et appartient à l'utilisateur
+  if (userId) {
+    const isOwner = await validateVehicleOwnership(vehicleId, userId);
+    if (!isOwner) {
+      return 'Véhicule non trouvé ou non autorisé';
+    }
   }
 
-  // Vérifier le kilométrage par rapport au kilométrage actuel
-  if (vehicle.currentMileage && mileage < vehicle.currentMileage && !forceMileageUpdate) {
-    return 'Le kilométrage ne peut pas être inférieur au kilométrage actuel du véhicule. Utilisez forceMileageUpdate=true pour forcer la mise à jour.';
+  // Vérifier le kilométrage
+  const mileageValidation = await validateMileage(vehicleId, mileage, data.id);
+  if (!mileageValidation.isValid) {
+    if (mileageValidation.requiresForceUpdate && !forceMileageUpdate) {
+      return mileageValidation.message;
+    }
   }
 
   // Validation des dates d'abonnement
@@ -70,11 +71,15 @@ export const validateFuelEntry = async (data: any) => {
       return 'Les dates de début et de fin d\'abonnement sont requises pour un abonnement';
     }
 
-    const startDate = new Date(subscriptionStartDate);
-    const endDate = new Date(subscriptionEndDate);
+    const dateRangeValidation = validateDateRange(
+      subscriptionStartDate,
+      subscriptionEndDate,
+      'début d\'abonnement',
+      'fin d\'abonnement'
+    );
 
-    if (startDate > endDate) {
-      return 'La date de début d\'abonnement doit être antérieure à la date de fin';
+    if (!dateRangeValidation.isValid) {
+      return dateRangeValidation.message;
     }
   }
 

@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import vehicleService from '../services/vehicle.service';
 import { getSystemDate } from '../config/systemDate';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 // Définition des énumérations localement
 enum EnergyType {
@@ -29,7 +32,7 @@ enum MaintenanceFrequency {
 class VehicleController {
   async create(req: Request, res: Response) {
     try {
-      const { brand, model, year, licensePlate, vin, mileage, energyType, chassisNumber, productionDate, acquisitionDate, initialMileage, currentMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
+      const { brand, model, year, licensePlate, vin, mileage, energyType, chassisNumber, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -154,7 +157,6 @@ class VehicleController {
         chassisNumber,
         ...dates,
         initialMileage,
-        currentMileage,
         powerDIN,
         powerHP,
         batterySize,
@@ -222,8 +224,8 @@ class VehicleController {
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
+      const { brand, model, year, licensePlate, vin, mileage, energyType, chassisNumber, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
       const userId = req.user?.id;
-      const { brand, model, year, licensePlate, vin, mileage, energyType, chassisNumber, productionDate, acquisitionDate, initialMileage, currentMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
 
       if (!userId) {
         return res.status(401).json({ message: 'Non authentifié' });
@@ -331,7 +333,7 @@ class VehicleController {
 
       console.log('Toutes les validations de dates ont réussi');
 
-      const updatedVehicle = await vehicleService.update(id, {
+      const updateData = {
         brand,
         model,
         year,
@@ -342,13 +344,14 @@ class VehicleController {
         chassisNumber,
         ...dates,
         initialMileage,
-        currentMileage,
         powerDIN,
         powerHP,
         batterySize,
         maintenanceFrequency,
         status
-      });
+      };
+
+      const updatedVehicle = await vehicleService.update(id, updateData);
 
       res.json(updatedVehicle);
     } catch (error) {
@@ -390,6 +393,47 @@ class VehicleController {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: 'Une erreur est survenue lors de la suppression du véhicule' });
+    }
+  }
+
+  async getHistoricalMaxMileage(req: Request, res: Response) {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.id;
+
+      if (!userId) {
+        return res.status(401).json({ 
+          message: 'Non authentifié',
+          code: 'AUTH_REQUIRED'
+        });
+      }
+
+      // Vérifier que le véhicule appartient à l'utilisateur
+      const vehicle = await prisma.vehicle.findFirst({
+        where: {
+          id,
+          userId
+        }
+      });
+
+      if (!vehicle) {
+        return res.status(404).json({ 
+          message: 'Véhicule non trouvé ou non autorisé',
+          code: 'NOT_FOUND'
+        });
+      }
+
+      const maxMileage = await vehicleService.getHistoricalMaxMileage(id);
+      
+      return res.json({
+        historicalMaxMileage: maxMileage
+      });
+    } catch (error) {
+      console.error('[VehicleController] Erreur lors de la récupération du kilométrage maximum:', error);
+      return res.status(500).json({ 
+        message: 'Une erreur est survenue lors de la récupération du kilométrage maximum',
+        code: 'INTERNAL_ERROR'
+      });
     }
   }
 }
