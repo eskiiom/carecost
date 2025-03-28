@@ -5,6 +5,7 @@ import { ConsumptionChartContainer } from '../../components/ConsumptionChartCont
 import { FuelEntriesList } from '../../components/FuelEntries/FuelEntriesList';
 import { MaintenanceList } from '../../components/Maintenance/MaintenanceList';
 import { MaintenanceForm } from '../../components/Maintenance/MaintenanceForm';
+import { VehicleForm } from './VehicleForm';
 
 interface Vehicle {
   id: string;
@@ -54,6 +55,8 @@ export const VehicleDetails: React.FC = () => {
     pricePerLiter: 0,
   });
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const fetchVehicle = async () => {
     try {
@@ -101,10 +104,6 @@ export const VehicleDetails: React.FC = () => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce véhicule ?')) {
-      return;
-    }
-
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
@@ -128,6 +127,7 @@ export const VehicleDetails: React.FC = () => {
       setError('Une erreur est survenue lors de la suppression du véhicule');
     } finally {
       setLoading(false);
+      setShowDeleteModal(false);
     }
   };
 
@@ -188,13 +188,13 @@ export const VehicleDetails: React.FC = () => {
           </div>
           <div className="space-x-4">
             <button
-              onClick={() => navigate(`/vehicles/${id}/edit`)}
+              onClick={() => setShowEditModal(true)}
               className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
               Edit
             </button>
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteModal(true)}
               className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
             >
               Delete
@@ -202,6 +202,59 @@ export const VehicleDetails: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal de modification */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">Modifier le véhicule</h2>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+            <VehicleForm
+              vehicle={vehicle}
+              onSuccess={() => {
+                setShowEditModal(false);
+                fetchVehicle();
+              }}
+              onCancel={() => setShowEditModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmer la suppression</h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer ce véhicule ?
+              <br />
+              <span className="font-medium">{vehicle.brand} {vehicle.model} ({vehicle.licensePlate})</span>
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDelete}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Onglets */}
       <div className="bg-white shadow rounded-lg overflow-hidden">

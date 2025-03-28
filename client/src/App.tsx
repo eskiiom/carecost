@@ -9,6 +9,8 @@ import { Statistics } from './pages/Statistics';
 import { Maintenance } from './pages/Maintenance';
 import { PrivateRoute } from './components/PrivateRoute';
 import { Navbar } from './components/Layout/Navbar';
+import { NewVehicle } from './pages/Vehicles/NewVehicle';
+import { EditVehicle } from './pages/Vehicles/EditVehicle';
 
 function App() {
   return (
@@ -20,9 +22,9 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/vehicles" element={<PrivateRoute><VehicleList /></PrivateRoute>} />
-            <Route path="/vehicles/new" element={<PrivateRoute><VehicleForm /></PrivateRoute>} />
+            <Route path="/vehicles/new" element={<PrivateRoute><NewVehicle /></PrivateRoute>} />
             <Route path="/vehicles/:id" element={<PrivateRoute><VehicleDetails /></PrivateRoute>} />
-            <Route path="/vehicles/:id/edit" element={<PrivateRoute><VehicleForm /></PrivateRoute>} />
+            <Route path="/vehicles/:id/edit" element={<PrivateRoute><EditVehicle /></PrivateRoute>} />
             <Route path="/statistics" element={<PrivateRoute><Statistics /></PrivateRoute>} />
             <Route path="/maintenance" element={<PrivateRoute><Maintenance /></PrivateRoute>} />
             <Route path="/" element={<PrivateRoute><VehicleList /></PrivateRoute>} />

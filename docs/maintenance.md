@@ -4,16 +4,31 @@
 Le module de gestion des maintenances permet aux utilisateurs de suivre l'historique des interventions sur leurs véhicules. Il comprend l'ajout, la modification et la suppression des entrées de maintenance, ainsi que la mise à jour automatique du kilométrage du véhicule.
 
 ## Interface Utilisateur Unifiée
-L'interface utilisateur suit un design cohérent à travers l'application, notamment pour :
-- Les formulaires d'ajout/modification affichés dans des modales modernes
-- Les dialogues de confirmation pour les actions critiques
-- La présentation des données dans des tableaux structurés
-- Les interactions utilisateur (boutons, validations, messages d'erreur)
 
-Cette cohérence se retrouve dans :
-- La gestion des maintenances
-- La gestion des entrées de carburant
-- Les autres fonctionnalités de l'application
+L'application adopte une approche cohérente pour l'interface utilisateur à travers tous ses composants :
+
+### Modales et Formulaires
+- Les formulaires de création et de modification sont présentés dans des modales modernes avec un fond semi-transparent
+- Les actions critiques (suppression) sont accompagnées de dialogues de confirmation
+- Navigation intuitive avec des boutons d'action clairement identifiés (Annuler/Confirmer)
+
+### Gestion des Véhicules
+- Liste des véhicules avec des cartes interactives présentant les informations essentielles
+- Formulaire unifié pour l'ajout et la modification des véhicules
+- Actions contextuelles (modification, suppression) accessibles depuis la vue détaillée
+- Gestion des états de chargement et des erreurs avec des retours visuels appropriés
+
+### Maintenance et Carburant
+- Présentation structurée des données dans des tableaux avec formatage adapté
+- Modales de confirmation pour les actions critiques
+- Cohérence dans la présentation des formulaires et des actions
+- Notes et commentaires intégrés pour un meilleur suivi
+
+### Expérience Utilisateur
+- Navigation fluide entre les différentes sections
+- Retours visuels immédiats pour les actions utilisateur
+- Messages d'erreur et de succès clairement identifiables
+- Design responsive adapté à différentes tailles d'écran
 
 ## Fonctionnalités
 
