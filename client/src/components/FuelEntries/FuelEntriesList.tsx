@@ -160,54 +160,74 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     return <div className="text-red-600 text-center py-4">{error}</div>;
   }
 
-  if (showForm) {
-    return (
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          {entryToEdit ? 'Modifier l\'entrée' : 'Nouvelle entrée'}
-        </h3>
-        <FuelEntryForm
-          vehicleId={vehicleId}
-          entryToEdit={entryToEdit}
-          onSuccess={handleFormSuccess}
-          onCancel={() => {
-            setShowForm(false);
-            setEntryToEdit(undefined);
-          }}
-          currentMileage={vehicle?.currentMileage}
-        />
-      </div>
-    );
-  }
-
-  if (entries.length === 0) {
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium text-gray-900">Entrées de carburant</h3>
-          <button
-            onClick={() => setShowForm(true)}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
-            Ajouter une entrée
-          </button>
-        </div>
-        <p className="text-gray-500 text-center">Aucune entrée de carburant</p>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-medium text-gray-900">Entrées de carburant</h3>
+    <div className="space-y-4">
+      <div className="flex justify-end">
         <button
           onClick={() => setShowForm(true)}
-          className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
         >
           Ajouter une entrée
         </button>
       </div>
+
+      {/* Modal pour le formulaire */}
+      {showForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-medium text-gray-900">
+                {entryToEdit ? 'Modifier l\'entrée' : 'Nouvelle entrée'}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowForm(false);
+                  setEntryToEdit(undefined);
+                }}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+            <FuelEntryForm
+              vehicleId={vehicleId}
+              entryToEdit={entryToEdit}
+              onSuccess={handleFormSuccess}
+              onCancel={() => {
+                setShowForm(false);
+                setEntryToEdit(undefined);
+              }}
+              currentMileage={vehicle?.currentMileage}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmation de suppression */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirmer la suppression</h3>
+            <p className="text-gray-600 mb-6">
+              Êtes-vous sûr de vouloir supprimer cette entrée de carburant ?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteConfirm(null)}
+                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => showDeleteConfirm && handleDelete(showDeleteConfirm)}
+                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Supprimer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
@@ -223,13 +243,16 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
                 Quantité (L)
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Prix/L
+                Prix unitaire
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Coût (€)
+                Coût total
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Station
+              </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Notes
               </th>
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
@@ -238,7 +261,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {entries.map((entry) => (
-              <tr key={entry.id} className={entry.missedFillup ? 'bg-yellow-50' : ''}>
+              <tr key={entry.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {format(new Date(entry.date), 'dd/MM/yyyy')}
                 </td>
@@ -246,49 +269,33 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
                   {entry.mileage.toLocaleString('fr-FR')} km
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.quantity.toFixed(2)}
+                  {entry.quantity.toLocaleString('fr-FR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.unitPrice.toFixed(3)}
+                  {entry.unitPrice.toLocaleString('fr-FR')} €
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {entry.totalCost.toFixed(2)}
+                  {entry.totalCost.toLocaleString('fr-FR')} €
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   {getStationTypeLabel(entry.stationType)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div className="flex space-x-2">
-                    <button
-                      onClick={() => handleEdit(entry)}
-                      className="text-blue-600 hover:text-blue-900"
-                    >
-                      Modifier
-                    </button>
-                    {showDeleteConfirm === entry.id ? (
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => handleDelete(entry.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          Confirmer
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(null)}
-                          className="text-gray-600 hover:text-gray-900"
-                        >
-                          Annuler
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setShowDeleteConfirm(entry.id)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                  </div>
+                <td className="px-6 py-4 whitespace-normal text-sm text-gray-900">
+                  {entry.notes || '-'}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  <button
+                    onClick={() => handleEdit(entry)}
+                    className="text-blue-600 hover:text-blue-900 mr-4"
+                  >
+                    Modifier
+                  </button>
+                  <button
+                    onClick={() => setShowDeleteConfirm(entry.id)}
+                    className="text-red-600 hover:text-red-900"
+                  >
+                    Supprimer
+                  </button>
                 </td>
               </tr>
             ))}

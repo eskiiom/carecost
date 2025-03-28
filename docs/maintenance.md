@@ -3,6 +3,18 @@
 ## Vue d'ensemble
 Le module de gestion des maintenances permet aux utilisateurs de suivre l'historique des interventions sur leurs véhicules. Il comprend l'ajout, la modification et la suppression des entrées de maintenance, ainsi que la mise à jour automatique du kilométrage du véhicule.
 
+## Interface Utilisateur Unifiée
+L'interface utilisateur suit un design cohérent à travers l'application, notamment pour :
+- Les formulaires d'ajout/modification affichés dans des modales modernes
+- Les dialogues de confirmation pour les actions critiques
+- La présentation des données dans des tableaux structurés
+- Les interactions utilisateur (boutons, validations, messages d'erreur)
+
+Cette cohérence se retrouve dans :
+- La gestion des maintenances
+- La gestion des entrées de carburant
+- Les autres fonctionnalités de l'application
+
 ## Fonctionnalités
 
 ### Entrées de Maintenance
