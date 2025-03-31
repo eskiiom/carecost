@@ -196,7 +196,7 @@ export const VehicleDetails: React.FC = () => {
               <p>{vehicle.licensePlate}</p>
               <span>•</span>
               <p>{getEnergyTypeLabel(vehicle.energyType)}</p>
-              {vehicle.historicalMaxMileage && (
+              {typeof vehicle.historicalMaxMileage !== 'undefined' && (
                 <>
                   <span>•</span>
                   <p>{vehicle.historicalMaxMileage.toLocaleString()} km</p>
