@@ -10,6 +10,8 @@ interface Vehicle {
   licensePlate: string;
   energyType: string;
   year: number;
+  initialMileage: number;
+  vin: string;
 }
 
 export const VehicleList: React.FC = () => {

@@ -13,6 +13,7 @@ interface VehicleResponse {
   energyType: string;
   initialMileage: number;
   licensePlate: string;
+  vin: string;
 }
 
 export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess }) => {
@@ -22,7 +23,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess }) => {
     year: new Date().getFullYear(),
     energyType: 'GASOLINE',
     initialMileage: 0,
-    licensePlate: ''
+    licensePlate: '',
+    vin: ''
   });
 
   const [error, setError] = useState<string | null>(null);
@@ -58,7 +60,8 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess }) => {
         year: new Date().getFullYear(),
         energyType: 'GASOLINE',
         initialMileage: 0,
-        licensePlate: ''
+        licensePlate: '',
+        vin: ''
       });
 
       if (onSuccess && response.data.id) {
@@ -128,6 +131,19 @@ export const VehicleForm: React.FC<VehicleFormProps> = ({ onSuccess }) => {
             className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
             placeholder="AB-123-CD"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Numéro de châssis (VIN)
+          </label>
+          <input
+            type="text"
+            value={formData.vin}
+            onChange={(e) => setFormData({ ...formData, vin: e.target.value.toUpperCase() })}
+            className="w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+            required
           />
         </div>
 

@@ -17,7 +17,7 @@ const prisma = new PrismaClient();
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? ['https://carecost.com'] // À remplacer par votre domaine de production
-    : ['http://localhost:3001'], // Frontend sur le port 3001
+    : ['http://localhost:3001', 'http://192.168.0.21:3001'], // Frontend sur le port 3001
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true,

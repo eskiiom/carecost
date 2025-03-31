@@ -18,11 +18,21 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       setLoading(true);
       setError(null);
 
+      const apiUrl = process.env.REACT_APP_API_URL;
+      if (!apiUrl) {
+        throw new Error('REACT_APP_API_URL n\'est pas défini dans le fichier .env');
+      }
+
       const response = await axios.post<LoginResponse>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/auth/login`,
+        `${apiUrl}/api/auth/login`,
         {
           email: "test@example.com",
           password: "Test123!"
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
         }
       );
 
@@ -32,7 +42,20 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
       }
     } catch (err) {
       console.error('Erreur de connexion:', err);
-      setError('Erreur lors de la connexion');
+      const error = err as any;
+      
+      if (error.code === 'ERR_NETWORK') {
+        setError(`Impossible de se connecter au serveur. Vérifiez que :
+          - Le serveur backend est en cours d'exécution
+          - L'URL de l'API est correcte
+          - Vous avez accès au serveur depuis votre machine`);
+      } else if (error.response?.status === 401) {
+        setError('Identifiants incorrects');
+      } else if (error.response?.status === 400) {
+        setError(error.response.data.message || 'Erreur de validation');
+      } else {
+        setError('Une erreur est survenue lors de la connexion');
+      }
     } finally {
       setLoading(false);
     }
@@ -41,7 +64,7 @@ export const Login: React.FC<LoginProps> = ({ onLoginSuccess }) => {
   return (
     <div className="flex flex-col items-center justify-center p-4">
       <h2 className="text-xl font-semibold mb-4">Connexion requise</h2>
-      {error && <div className="text-red-500 mb-4">{error}</div>}
+      {error && <div className="text-red-500 mb-4 whitespace-pre-line">{error}</div>}
       <button
         onClick={handleLogin}
         disabled={loading}

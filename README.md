@@ -5,6 +5,9 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 ## Fonctionnalités
 
 - Gestion des véhicules (création, modification, suppression)
+  - Identification unique par VIN (Vehicle Identification Number)
+  - Suivi du kilométrage initial
+  - Gestion des types d'énergie (essence, diesel, électrique, etc.)
 - Suivi des entrées de carburant
 - Suivi des entrées de maintenance
 - Validation des dates et des données
@@ -78,7 +81,7 @@ carecost/
 - POST /api/auth/login - Connexion d'un utilisateur
 
 ### Véhicules
-- POST /api/vehicles - Création d'un véhicule
+- POST /api/vehicles - Création d'un véhicule (requiert : brand, model, year, licensePlate, energyType, initialMileage, vin)
 - GET /api/vehicles - Liste des véhicules de l'utilisateur
 - GET /api/vehicles/:id - Détails d'un véhicule
 - PUT /api/vehicles/:id - Modification d'un véhicule
