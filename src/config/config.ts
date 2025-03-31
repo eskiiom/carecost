@@ -7,17 +7,17 @@ export const config = {
     url: process.env.DATABASE_URL,
   },
   jwt: {
-    secret: process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production',
-    expiresIn: process.env.JWT_EXPIRES_IN || '24h',
+    secret: process.env.JWT_SECRET || 'your-secret-key',
+    expiresIn: '24h',
   },
   email: {
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    host: process.env.EMAIL_HOST,
+    port: 587,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASSWORD,
   },
   app: {
-    port: parseInt(process.env.PORT || '3000'),
+    port: process.env.PORT || 3000,
     nodeEnv: process.env.NODE_ENV || 'development',
   },
 }; 

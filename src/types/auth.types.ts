@@ -1,3 +1,5 @@
+import { Request } from 'express';
+
 export type UserRole = 'USER' | 'ADMIN' | 'SUPER_ADMIN';
 
 export interface RegisterDTO {
@@ -36,4 +38,12 @@ export interface AuthResponse {
     updatedAt: Date;
   };
   token: string;
+}
+
+export interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: UserRole;
+  };
 } 

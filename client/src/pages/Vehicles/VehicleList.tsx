@@ -2,6 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { VehicleForm } from './VehicleForm';
+import { ViewSelector } from '../../components/ViewSelector';
+import { useUserPreferences } from '../../hooks/useUserPreferences';
+import { ViewMode } from '../../types/preferences.types';
 
 interface Vehicle {
   id: string;
@@ -19,7 +22,16 @@ export const VehicleList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const { preferences, updatePreferences } = useUserPreferences();
   const navigate = useNavigate();
+
+  const handleViewChange = async (newView: ViewMode) => {
+    try {
+      await updatePreferences({ vehicleViewMode: newView });
+    } catch (err) {
+      console.error('Erreur lors de la mise à jour des préférences:', err);
+    }
+  };
 
   const fetchVehicles = async () => {
     try {
@@ -79,20 +91,26 @@ export const VehicleList: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Mes véhicules</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-        >
-          Ajouter un véhicule
-        </button>
+        <h1 className="text-2xl font-bold">Mes Véhicules</h1>
+        <div className="flex items-center space-x-4">
+          <ViewSelector
+            currentView={preferences.vehicleViewMode}
+            onViewChange={handleViewChange}
+          />
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            Ajouter un véhicule
+          </button>
+        </div>
       </div>
 
       {vehicles.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-500 mb-4">Vous n'avez pas encore de véhicule</p>
         </div>
-      ) : (
+      ) : preferences.vehicleViewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {vehicles.map((vehicle) => (
             <Link
@@ -108,6 +126,32 @@ export const VehicleList: React.FC = () => {
                   <p>Année : {vehicle.year}</p>
                   <p>Immatriculation : {vehicle.licensePlate}</p>
                   <p>Énergie : {getEnergyTypeLabel(vehicle.energyType)}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {vehicles.map((vehicle) => (
+            <Link
+              key={vehicle.id}
+              to={`/vehicles/${vehicle.id}`}
+              className="block bg-white rounded-lg shadow hover:shadow-md transition-shadow duration-200"
+            >
+              <div className="p-4 flex justify-between items-center">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {vehicle.brand} {vehicle.model}
+                  </h2>
+                  <div className="text-sm text-gray-600">
+                    {vehicle.year} - {vehicle.licensePlate} - {getEnergyTypeLabel(vehicle.energyType)}
+                  </div>
+                </div>
+                <div className="text-gray-400">
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
                 </div>
               </div>
             </Link>

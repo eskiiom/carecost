@@ -12,6 +12,9 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 - Suivi des entrées de maintenance
 - Validation des dates et des données
 - Authentification des utilisateurs
+- Préférences utilisateur personnalisées
+  - Mode d'affichage des véhicules (grille/liste)
+  - Persistance des préférences entre les sessions
 
 ## Technologies utilisées
 
@@ -20,6 +23,8 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 - TypeScript
 - Prisma (PostgreSQL)
 - JWT pour l'authentification
+- React avec hooks personnalisés
+- Material-UI pour l'interface utilisateur
 
 ## Prérequis
 
@@ -37,6 +42,13 @@ cd carecost
 
 2. Installer les dépendances :
 ```bash
+# Backend
+npm install
+# ou
+pnpm install
+
+# Frontend
+cd client
 npm install
 # ou
 pnpm install
@@ -53,11 +65,18 @@ cp .env.example .env
 npx prisma migrate dev
 ```
 
-5. Démarrer le serveur :
+5. Démarrer les serveurs :
 ```bash
+# Backend
 npm run dev
 # ou
 pnpm dev
+
+# Frontend (dans un autre terminal)
+cd client
+npm start
+# ou
+pnpm start
 ```
 
 ## Structure du projet
@@ -70,8 +89,15 @@ carecost/
 │   ├── services/     # Services métier
 │   ├── middleware/   # Middlewares Express
 │   └── routes/       # Routes de l'API
+├── client/
+│   ├── src/
+│   │   ├── components/  # Composants React
+│   │   ├── hooks/       # Hooks personnalisés
+│   │   ├── pages/      # Pages de l'application
+│   │   └── types/      # Types TypeScript
+│   └── package.json    # Dépendances frontend
 ├── .env.example      # Exemple de configuration
-└── package.json      # Dépendances et scripts
+└── package.json      # Dépendances backend
 ```
 
 ## API Endpoints
@@ -86,6 +112,22 @@ carecost/
 - GET /api/vehicles/:id - Détails d'un véhicule
 - PUT /api/vehicles/:id - Modification d'un véhicule
 - DELETE /api/vehicles/:id - Suppression d'un véhicule
+
+### Préférences Utilisateur
+- GET /api/user/preferences - Récupération des préférences de l'utilisateur
+- PATCH /api/user/preferences - Mise à jour des préférences de l'utilisateur
+
+## Hooks Personnalisés
+
+### useUserPreferences
+Hook React pour gérer les préférences utilisateur :
+```typescript
+const { preferences, loading, error, updatePreferences } = useUserPreferences();
+```
+- `preferences` : Préférences actuelles de l'utilisateur
+- `loading` : État de chargement
+- `error` : Message d'erreur éventuel
+- `updatePreferences` : Fonction pour mettre à jour les préférences
 
 ## Contribution
 
