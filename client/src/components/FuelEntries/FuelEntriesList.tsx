@@ -160,6 +160,22 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     return <div className="text-red-600 text-center py-4">{error}</div>;
   }
 
+  if (entries.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="flex justify-end">
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+          >
+            Ajouter une entrée
+          </button>
+        </div>
+        <div className="text-center py-4 text-gray-500">Aucune entrée de carburant enregistrée</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
