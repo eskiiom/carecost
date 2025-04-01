@@ -22,8 +22,14 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 
 La documentation détaillée des fonctionnalités est disponible dans le dossier `docs/` :
 
+- [API](docs/API.md) - Documentation complète des endpoints de l'API
 - [Code Couleur des Types d'Énergie](docs/features/energy-colors.md) - Documentation de l'implémentation du système de couleurs pour les types d'énergie
 - [Validation des Carburants](docs/features/fuel-validation.md) - Documentation du système de validation des carburants par type de véhicule
+- [Maintenance](docs/maintenance.md) - Documentation des fonctionnalités de maintenance
+- [Roadmap](docs/ROADMAP.md) - Plan de développement futur
+- [Credentials](CREDENTIALS.md) - Guide de gestion des identifiants et des secrets
+
+Pour le développement frontend, consultez le [README du client](client/README.md).
 
 ## Technologies utilisées
 

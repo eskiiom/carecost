@@ -11,7 +11,7 @@ router.use(authenticate);
 router.post('/', fuelEntryController.create);
 
 // Obtenir toutes les entrées de carburant/recharge d'un véhicule
-router.get('/vehicle/:vehicleId', fuelEntryController.getByVehicleId);
+router.get('/', fuelEntryController.getByVehicleId);
 
 // Mettre à jour une entrée de carburant/recharge
 router.put('/:id', fuelEntryController.update);

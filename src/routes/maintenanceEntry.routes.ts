@@ -11,7 +11,7 @@ router.use(authenticate);
 router.post('/', maintenanceEntryController.create);
 
 // Obtenir toutes les entrées de maintenance d'un véhicule
-router.get('/vehicle/:vehicleId', maintenanceEntryController.getByVehicleId);
+router.get('/', maintenanceEntryController.getByVehicleId);
 
 // Mettre à jour une entrée de maintenance
 router.put('/:id', maintenanceEntryController.update);
