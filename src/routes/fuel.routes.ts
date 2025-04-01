@@ -1,11 +1,11 @@
 import { Router } from 'express';
 import { FuelController } from '../controllers/fuel.controller';
-import { authenticateToken } from '../middleware/auth';
+import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
 
 // Routes protégées par authentification
-router.use(authenticateToken);
+router.use(authenticate);
 
 // Récupérer les carburants disponibles pour un type d'énergie
 router.get('/:energyType', FuelController.getFuelTypes);
