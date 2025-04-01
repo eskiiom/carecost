@@ -7,6 +7,7 @@ import { MaintenanceList } from '../../components/Maintenance/MaintenanceList';
 import { MaintenanceForm } from '../../components/Maintenance/MaintenanceForm';
 import { VehicleForm } from './VehicleForm';
 import { Vehicle, VehicleFormData, EnergyType, VehicleStatus, MaintenanceEntry, FuelEntry } from '../../types/vehicle.types';
+import { ENERGY_COLORS } from '../../constants/energyColors';
 
 interface HistoricalMaxMileageResponse {
   historicalMaxMileage: number;
@@ -77,8 +78,8 @@ export const VehicleDetails: React.FC = () => {
     }
   }, [id]);
 
-  const getEnergyTypeLabel = (type: string) => {
-    const types: { [key: string]: string } = {
+  const getEnergyTypeLabel = (type: EnergyType) => {
+    const types: Record<EnergyType, string> = {
       GASOLINE: 'Essence',
       DIESEL: 'Diesel',
       GPL: 'GPL',
@@ -88,6 +89,13 @@ export const VehicleDetails: React.FC = () => {
       HYDROGEN: 'Hydrogène'
     };
     return types[type] || type;
+  };
+
+  const getEnergyTypeStyle = (type: EnergyType) => {
+    return {
+      color: ENERGY_COLORS[type],
+      fontWeight: 'bold'
+    };
   };
 
   const handleDelete = async () => {
@@ -164,7 +172,7 @@ export const VehicleDetails: React.FC = () => {
             <div className="flex items-center space-x-4 text-gray-500">
               <p>{vehicle.licensePlate}</p>
               <span>•</span>
-              <p>{getEnergyTypeLabel(vehicle.energyType)}</p>
+              <p><span style={getEnergyTypeStyle(vehicle.energyType)}>{getEnergyTypeLabel(vehicle.energyType)}</span></p>
               {typeof vehicle.historicalMaxMileage !== 'undefined' && (
                 <>
                   <span>•</span>
@@ -313,7 +321,9 @@ export const VehicleDetails: React.FC = () => {
                   </div>
                   <div>
                     <dt className="text-sm font-medium text-gray-500">Type d'énergie</dt>
-                    <dd className="mt-1 text-sm text-gray-900">{getEnergyTypeLabel(vehicle.energyType)}</dd>
+                    <dd className="mt-1 text-sm text-gray-900">
+                      <span style={getEnergyTypeStyle(vehicle.energyType)}>{getEnergyTypeLabel(vehicle.energyType)}</span>
+                    </dd>
                   </div>
                 </dl>
               </div>

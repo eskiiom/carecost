@@ -5,13 +5,15 @@ import { VehicleForm } from './VehicleForm';
 import { ViewSelector } from '../../components/ViewSelector';
 import { useUserPreferences } from '../../hooks/useUserPreferences';
 import { ViewMode } from '../../types/preferences.types';
+import { ENERGY_COLORS } from '../../constants/energyColors';
+import { EnergyType } from '../../types/vehicle.types';
 
 interface Vehicle {
   id: string;
   brand: string;
   model: string;
   licensePlate: string;
-  energyType: string;
+  energyType: EnergyType;
   year: number;
   initialMileage: number;
   vin: string;
@@ -75,8 +77,8 @@ export const VehicleList: React.FC = () => {
     return <div className="text-red-600 text-center py-4">{error}</div>;
   }
 
-  const getEnergyTypeLabel = (type: string) => {
-    const types: { [key: string]: string } = {
+  const getEnergyTypeLabel = (type: EnergyType) => {
+    const types: Record<EnergyType, string> = {
       GASOLINE: 'Essence',
       DIESEL: 'Diesel',
       GPL: 'GPL',
@@ -86,6 +88,13 @@ export const VehicleList: React.FC = () => {
       HYDROGEN: 'Hydrogène'
     };
     return types[type] || type;
+  };
+
+  const getEnergyTypeStyle = (type: EnergyType) => {
+    return {
+      color: ENERGY_COLORS[type],
+      fontWeight: 'bold'
+    };
   };
 
   return (
@@ -125,7 +134,7 @@ export const VehicleList: React.FC = () => {
                 <div className="text-gray-600">
                   <p>Année : {vehicle.year}</p>
                   <p>Immatriculation : {vehicle.licensePlate}</p>
-                  <p>Énergie : {getEnergyTypeLabel(vehicle.energyType)}</p>
+                  <p>Énergie : <span style={getEnergyTypeStyle(vehicle.energyType)}>{getEnergyTypeLabel(vehicle.energyType)}</span></p>
                 </div>
               </div>
             </Link>
@@ -145,7 +154,7 @@ export const VehicleList: React.FC = () => {
                     {vehicle.brand} {vehicle.model}
                   </h2>
                   <div className="text-sm text-gray-600">
-                    {vehicle.year} - {vehicle.licensePlate} - {getEnergyTypeLabel(vehicle.energyType)}
+                    {vehicle.year} - {vehicle.licensePlate} - <span style={getEnergyTypeStyle(vehicle.energyType)}>{getEnergyTypeLabel(vehicle.energyType)}</span>
                   </div>
                 </div>
                 <div className="text-gray-400">
