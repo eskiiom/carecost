@@ -60,16 +60,29 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
         return;
       }
 
-      const response = await axios.get<Vehicle>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
+      const [vehicleResponse, historicalResponse] = await Promise.all([
+        axios.get<Vehicle>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
           }
-        }
-      );
+        ),
+        axios.get<{ historicalMaxMileage: number }>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/historical-max-mileage`,
+          {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          }
+        )
+      ]);
 
-      setVehicle(response.data);
+      setVehicle({
+        ...vehicleResponse.data,
+        historicalMaxMileage: historicalResponse.data.historicalMaxMileage
+      });
     } catch (err) {
       console.error('Erreur lors de la récupération du véhicule:', err);
     }
@@ -112,9 +125,15 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
       }
 
       await handleFormSuccess();
-    } catch (err) {
-      console.error('Erreur lors de la sauvegarde:', err);
-      throw new Error(err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde');
+    } catch (error: any) {
+      console.error('Erreur lors de la sauvegarde:', error);
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      } else if (error.response?.data) {
+        throw new Error(typeof error.response.data === 'string' ? error.response.data : 'Une erreur est survenue');
+      } else {
+        throw new Error(error.message || 'Une erreur est survenue lors de la sauvegarde');
+      }
     }
   };
 

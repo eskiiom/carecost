@@ -29,7 +29,7 @@ export interface FuelType {
 
 export interface FuelEntry {
   id: string;
-  date: Date;
+  date: string;
   mileage: number;
   quantity: number;
   unitPrice: number;
@@ -38,12 +38,12 @@ export interface FuelEntry {
   stationType?: string;
   rechargeType?: string;
   isSubscription: boolean;
-  subscriptionStartDate?: Date;
-  subscriptionEndDate?: Date;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
   notes?: string;
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: string;
+  updatedAt: string;
   vehicleId: string;
   missedFillup?: boolean;
 }
@@ -88,7 +88,6 @@ export interface Vehicle {
   fuelEntries: FuelEntry[];
   maintenanceEntries: MaintenanceEntry[];
   historicalMaxMileage?: number;
-  currentMileage: number;
 }
 
 export interface VehicleFormData {

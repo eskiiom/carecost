@@ -1,8 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
 import format from 'date-fns/format';
-import parseISO from 'date-fns/parseISO';
-import { Vehicle, FuelEntry, EnergyType, FuelType } from '../../types/vehicle.types';
+import { Vehicle, FuelEntry } from '../../types/vehicle.types';
 import { useFuelTypes } from '../../hooks/useFuelTypes';
 
 type FuelEntryFormData = Omit<Partial<FuelEntry>, 'quantity' | 'unitPrice'> & {
@@ -24,9 +22,13 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   onCancel,
 }) => {
   const { fuelTypes, loading: fuelTypesLoading } = useFuelTypes(vehicle.energyType);
+  const [lastKnownMileage, setLastKnownMileage] = useState<number>(
+    vehicle.historicalMaxMileage || 0
+  );
+  const [forceMileageUpdate, setForceMileageUpdate] = useState(false);
   const [formData, setFormData] = useState<FuelEntryFormData>({
-    date: entry?.date || new Date(),
-    mileage: entry?.mileage || vehicle.currentMileage || 0,
+    date: entry?.date || format(new Date(), 'yyyy-MM-dd'),
+    mileage: entry?.mileage || vehicle.historicalMaxMileage || 0,
     quantity: entry?.quantity || 0,
     unitPrice: entry?.unitPrice || 0,
     totalCost: entry?.totalCost || 0,
@@ -37,36 +39,28 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
     subscriptionStartDate: entry?.subscriptionStartDate,
     subscriptionEndDate: entry?.subscriptionEndDate,
     notes: entry?.notes || '',
-    status: entry?.status || 'PENDING',
+    status: entry?.status || 'ACTIVE',
     missedFillup: entry?.missedFillup || false,
   });
+
   const [tempValues, setTempValues] = useState({
-    mileage: '',
-    quantity: '',
-    unitPrice: '',
-    totalCost: ''
+    mileage: entry?.mileage?.toString() || vehicle.historicalMaxMileage?.toString() || '',
+    quantity: entry?.quantity?.toString() || '',
+    unitPrice: entry?.unitPrice?.toString() || '',
+    totalCost: entry?.totalCost?.toString() || ''
   });
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
-  const [lastKnownMileage, setLastKnownMileage] = useState<number>(0);
-  const [forceMileageUpdate, setForceMileageUpdate] = useState(false);
 
   useEffect(() => {
     if (entry) {
-      const date = entry.date instanceof Date ? entry.date : new Date(entry.date);
-      const startDate = entry.subscriptionStartDate 
-        ? (entry.subscriptionStartDate instanceof Date ? entry.subscriptionStartDate : new Date(entry.subscriptionStartDate))
-        : undefined;
-      const endDate = entry.subscriptionEndDate
-        ? (entry.subscriptionEndDate instanceof Date ? entry.subscriptionEndDate : new Date(entry.subscriptionEndDate))
-        : undefined;
-
       setFormData({
         ...entry,
-        date,
-        subscriptionStartDate: startDate,
-        subscriptionEndDate: endDate,
+        date: entry.date,
+        subscriptionStartDate: entry.subscriptionStartDate,
+        subscriptionEndDate: entry.subscriptionEndDate,
       });
 
       // Initialiser les valeurs temporaires avec les valeurs existantes
@@ -88,10 +82,9 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   }, [entry]);
 
   useEffect(() => {
-    if (vehicle.historicalMaxMileage) {
-      setLastKnownMileage(vehicle.historicalMaxMileage);
-    }
-  }, [vehicle.id, vehicle.historicalMaxMileage]);
+    // Mettre à jour lastKnownMileage quand le véhicule change
+    setLastKnownMileage(vehicle.historicalMaxMileage || 0);
+  }, [vehicle]);
 
   const calculateMissingValue = useCallback(() => {
     const qty = parseFloat(tempValues.quantity);
@@ -137,7 +130,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
 
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'date' ? new Date(value) : newValue
+      [name]: newValue
     }));
 
     // Calculer automatiquement le coût total
@@ -159,10 +152,6 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
     return value.replace(',', '.');
   };
 
-  const calculateTotalCost = () => {
-    return (formData.quantity * formData.unitPrice).toFixed(2);
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -174,14 +163,42 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         throw new Error('Non authentifié');
       }
 
+      // Calculer le coût total correct
+      const quantity = Number(tempValues.quantity);
+      const unitPrice = Number(tempValues.unitPrice);
+      const calculatedTotalCost = Number((quantity * unitPrice).toFixed(2));
+
+      // Formater les données avant l'envoi
       const dataToSubmit = {
         ...formData,
         vehicleId: vehicle.id,
+        date: formData.date,
+        subscriptionStartDate: formData.subscriptionStartDate,
+        subscriptionEndDate: formData.subscriptionEndDate,
+        mileage: Number(tempValues.mileage),
+        quantity: quantity,
+        unitPrice: unitPrice,
+        totalCost: calculatedTotalCost,
+        fuelType: formData.fuelTypeId,
+        stationType: formData.stationType || undefined,
+        rechargeType: formData.rechargeType || undefined,
+        forceMileageUpdate
       };
 
+      // Supprimer les champs non nécessaires
+      delete (dataToSubmit as any).fuelTypeId;
+      delete (dataToSubmit as any).status;  // Le status est géré par Prisma
+
       await onSubmit(dataToSubmit);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
+    } catch (error: any) {
+      // Récupérer le message d'erreur du serveur si disponible
+      if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.response?.data) {
+        setError(typeof error.response.data === 'string' ? error.response.data : 'Une erreur est survenue');
+      } else {
+        setError(error instanceof Error ? error.message : 'Une erreur est survenue');
+      }
     } finally {
       setLoading(false);
     }
@@ -196,7 +213,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
             <input
               type="date"
               name="date"
-              value={formData.date ? format(formData.date, 'yyyy-MM-dd') : ''}
+              value={formData.date}
               onChange={handleInputChange}
               max={format(new Date(), 'yyyy-MM-dd')}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
@@ -215,25 +232,26 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
                 value={tempValues.mileage}
                 onChange={(e) => {
                   const value = normalizeNumber(e.target.value);
+                  const numericValue = parseFloat(value);
                   setTempValues(prev => ({ ...prev, mileage: value }));
-                  setFormData(prev => ({ ...prev, mileage: parseFloat(value) || 0 }));
+                  setFormData(prev => ({ ...prev, mileage: numericValue || 0 }));
                 }}
                 min="0"
                 step="1"
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                 required
-                placeholder={lastKnownMileage ? `Dernier kilométrage connu: ${lastKnownMileage.toLocaleString()} km` : undefined}
+                placeholder={`Dernier kilométrage connu: ${lastKnownMileage.toLocaleString()} km`}
               />
-              {parseFloat(tempValues.mileage) < (lastKnownMileage || 0) && (
+              {tempValues.mileage !== '' && parseFloat(tempValues.mileage) < lastKnownMileage && (
                 <div className="mt-2">
-                  <label className="inline-flex items-center text-sm text-gray-600">
+                  <label className="inline-flex items-center text-sm text-red-600">
                     <input
                       type="checkbox"
                       className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 mr-2"
                       checked={forceMileageUpdate}
                       onChange={(e) => setForceMileageUpdate(e.target.checked)}
                     />
-                    Forcer la mise à jour du kilométrage
+                    Forcer la mise à jour du kilométrage (inférieur au dernier connu: {lastKnownMileage.toLocaleString()} km)
                   </label>
                 </div>
               )}
@@ -373,7 +391,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
               type="date"
               id="subscriptionStartDate"
               name="subscriptionStartDate"
-              value={formData.subscriptionStartDate ? format(formData.subscriptionStartDate, 'yyyy-MM-dd') : ''}
+              value={formData.subscriptionStartDate}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
@@ -386,7 +404,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
               type="date"
               id="subscriptionEndDate"
               name="subscriptionEndDate"
-              value={formData.subscriptionEndDate ? format(formData.subscriptionEndDate, 'yyyy-MM-dd') : ''}
+              value={formData.subscriptionEndDate}
               onChange={handleInputChange}
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
             />
