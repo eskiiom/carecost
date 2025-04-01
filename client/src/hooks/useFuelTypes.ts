@@ -17,11 +17,14 @@ export const useFuelTypes = (energyType: EnergyType) => {
           return;
         }
 
-        const response = await axios.get<FuelType[]>(`/api/fuels/${energyType}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const response = await axios.get<FuelType[]>(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuels/${energyType}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        });
+        );
 
         setFuelTypes(response.data);
       } catch (err) {
