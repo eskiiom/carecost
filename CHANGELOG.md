@@ -2,6 +2,12 @@
 
 ## [Non publié]
 
+### Améliorations
+- Support des recharges électriques pour les véhicules hybrides :
+  - Les véhicules hybrides (essence et diesel) peuvent maintenant utiliser les types de recharge électrique
+  - Modification du service de carburant pour inclure les types de recharge électrique dans la liste des carburants disponibles
+  - Mise à jour de la validation des types de carburant pour autoriser les recharges électriques pour les véhicules hybrides
+
 ### Corrections de bugs
 - Formulaire de saisie des pleins de carburant :
   - Correction de l'affichage du dernier kilométrage connu dans le placeholder
