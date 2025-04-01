@@ -21,6 +21,12 @@ export enum MaintenanceFrequency {
   EVERY_30000KM = 'EVERY_30000KM'
 }
 
+export interface FuelType {
+  id: string;
+  name: string;
+  energyType: EnergyType;
+}
+
 export interface FuelEntry {
   id: string;
   date: Date;
@@ -28,7 +34,7 @@ export interface FuelEntry {
   quantity: number;
   unitPrice: number;
   totalCost: number;
-  fuelType?: string;
+  fuelTypeId: string;
   stationType?: string;
   rechargeType?: string;
   isSubscription: boolean;
@@ -39,6 +45,7 @@ export interface FuelEntry {
   createdAt: Date;
   updatedAt: Date;
   vehicleId: string;
+  missedFillup?: boolean;
 }
 
 export interface MaintenanceEntry {
@@ -81,6 +88,7 @@ export interface Vehicle {
   fuelEntries: FuelEntry[];
   maintenanceEntries: MaintenanceEntry[];
   historicalMaxMileage?: number;
+  currentMileage: number;
 }
 
 export interface VehicleFormData {

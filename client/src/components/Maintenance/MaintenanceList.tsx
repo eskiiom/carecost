@@ -81,7 +81,7 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({
       }
 
       const response = await axios.get<MaintenanceEntry[]>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries/vehicle/${vehicleId}`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/maintenance`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -126,7 +126,7 @@ export const MaintenanceList: React.FC<MaintenanceListProps> = ({
       }
 
       await axios.delete(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/maintenance-entries/${selectedEntry.id}`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/maintenance/${selectedEntry.id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

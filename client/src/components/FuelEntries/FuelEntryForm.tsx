@@ -2,68 +2,50 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import format from 'date-fns/format';
 import parseISO from 'date-fns/parseISO';
+import { Vehicle, FuelEntry, EnergyType, FuelType } from '../../types/vehicle.types';
+import { useFuelTypes } from '../../hooks/useFuelTypes';
 
-interface Vehicle {
-  id: string;
-  historicalMaxMileage?: number;
-  // ... autres champs ...
-}
-
-interface FuelEntryFormProps {
-  vehicleId: string;
-  entryToEdit?: FuelEntry;
-  onSuccess: () => void;
-  onCancel: () => void;
-  historicalMaxMileage?: number;
-}
-
-interface FuelEntry {
-  id?: string;
-  vehicleId: string;
-  date: string;
-  mileage: number;
+type FuelEntryFormData = Omit<Partial<FuelEntry>, 'quantity' | 'unitPrice'> & {
   quantity: number;
   unitPrice: number;
-  totalCost: number;
-  missedFillup?: boolean;
-  notes?: string;
-  fuelType?: string;
-  stationType?: string;
-  rechargeType?: string;
-  isSubscription: boolean;
-  subscriptionStartDate?: string;
-  subscriptionEndDate?: string;
-  status?: string;
-  createdAt?: string;
-  updatedAt?: string;
+};
+
+interface FuelEntryFormProps {
+  vehicle: Vehicle;
+  entry?: FuelEntry;
+  onSubmit: (data: Partial<FuelEntry>) => Promise<void>;
+  onCancel: () => void;
 }
 
 export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
-  vehicleId,
-  entryToEdit,
-  onSuccess,
+  vehicle,
+  entry,
+  onSubmit,
   onCancel,
-  historicalMaxMileage
 }) => {
-  const [formData, setFormData] = useState<FuelEntry>({
-    vehicleId,
-    date: format(new Date(), 'yyyy-MM-dd'),
-    mileage: 0,
-    quantity: 0,
-    unitPrice: 0,
-    totalCost: 0,
-    missedFillup: false,
-    isSubscription: false,
-    status: 'ACTIVE'
+  const { fuelTypes, loading: fuelTypesLoading } = useFuelTypes(vehicle.energyType);
+  const [formData, setFormData] = useState<FuelEntryFormData>({
+    date: entry?.date || new Date(),
+    mileage: entry?.mileage || vehicle.currentMileage || 0,
+    quantity: entry?.quantity || 0,
+    unitPrice: entry?.unitPrice || 0,
+    totalCost: entry?.totalCost || 0,
+    fuelTypeId: entry?.fuelTypeId || '',
+    stationType: entry?.stationType || '',
+    rechargeType: entry?.rechargeType || '',
+    isSubscription: entry?.isSubscription || false,
+    subscriptionStartDate: entry?.subscriptionStartDate,
+    subscriptionEndDate: entry?.subscriptionEndDate,
+    notes: entry?.notes || '',
+    status: entry?.status || 'PENDING',
+    missedFillup: entry?.missedFillup || false,
   });
-
   const [tempValues, setTempValues] = useState({
     mileage: '',
     quantity: '',
     unitPrice: '',
     totalCost: ''
   });
-
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
@@ -71,26 +53,28 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
   const [forceMileageUpdate, setForceMileageUpdate] = useState(false);
 
   useEffect(() => {
-    if (entryToEdit) {
+    if (entry) {
+      const date = entry.date instanceof Date ? entry.date : new Date(entry.date);
+      const startDate = entry.subscriptionStartDate 
+        ? (entry.subscriptionStartDate instanceof Date ? entry.subscriptionStartDate : new Date(entry.subscriptionStartDate))
+        : undefined;
+      const endDate = entry.subscriptionEndDate
+        ? (entry.subscriptionEndDate instanceof Date ? entry.subscriptionEndDate : new Date(entry.subscriptionEndDate))
+        : undefined;
+
       setFormData({
-        ...entryToEdit,
-        date: format(parseISO(entryToEdit.date), 'yyyy-MM-dd'),
-        subscriptionStartDate: entryToEdit.subscriptionStartDate 
-          ? format(parseISO(entryToEdit.subscriptionStartDate), 'yyyy-MM-dd')
-          : undefined,
-        subscriptionEndDate: entryToEdit.subscriptionEndDate
-          ? format(parseISO(entryToEdit.subscriptionEndDate), 'yyyy-MM-dd')
-          : undefined,
-        missedFillup: entryToEdit.missedFillup || false,
-        status: entryToEdit.status || 'ACTIVE'
+        ...entry,
+        date,
+        subscriptionStartDate: startDate,
+        subscriptionEndDate: endDate,
       });
 
       // Initialiser les valeurs temporaires avec les valeurs existantes
       setTempValues({
-        mileage: entryToEdit.mileage.toString(),
-        quantity: entryToEdit.quantity.toString(),
-        unitPrice: entryToEdit.unitPrice.toString(),
-        totalCost: entryToEdit.totalCost.toString()
+        mileage: entry.mileage.toString(),
+        quantity: entry.quantity.toString(),
+        unitPrice: entry.unitPrice.toString(),
+        totalCost: entry.totalCost.toString()
       });
     } else {
       // Réinitialiser les valeurs temporaires quand on crée une nouvelle entrée
@@ -101,13 +85,13 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         totalCost: ''
       });
     }
-  }, [entryToEdit]);
+  }, [entry]);
 
   useEffect(() => {
-    if (historicalMaxMileage) {
-      setLastKnownMileage(historicalMaxMileage);
+    if (vehicle.historicalMaxMileage) {
+      setLastKnownMileage(vehicle.historicalMaxMileage);
     }
-  }, [vehicleId, historicalMaxMileage]);
+  }, [vehicle.id, vehicle.historicalMaxMileage]);
 
   const calculateMissingValue = useCallback(() => {
     const qty = parseFloat(tempValues.quantity);
@@ -153,7 +137,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
 
     setFormData(prev => ({
       ...prev,
-      [name]: newValue
+      [name]: type === 'date' ? new Date(value) : newValue
     }));
 
     // Calculer automatiquement le coût total
@@ -175,132 +159,29 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
     return value.replace(',', '.');
   };
 
+  const calculateTotalCost = () => {
+    return (formData.quantity * formData.unitPrice).toFixed(2);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
+    setError(null);
 
     try {
       const token = localStorage.getItem('token');
       if (!token) {
-        setError('Non authentifié');
-        return;
+        throw new Error('Non authentifié');
       }
 
-      // Préparer les données pour l'envoi
-      let dataToSend: any = {};
-
-      if (entryToEdit) {
-        // Pour une modification, n'envoyer que les champs modifiés
-        if (formData.date !== format(parseISO(entryToEdit.date), 'yyyy-MM-dd')) {
-          dataToSend.date = formData.date;
-        }
-        if (formData.quantity !== entryToEdit.quantity) {
-          dataToSend.quantity = Number(formData.quantity);
-        }
-        if (formData.unitPrice !== entryToEdit.unitPrice) {
-          dataToSend.unitPrice = Number(formData.unitPrice);
-        }
-        if (formData.mileage !== entryToEdit.mileage) {
-          dataToSend.mileage = Number(formData.mileage);
-          if (forceMileageUpdate) {
-            dataToSend.forceMileageUpdate = true;
-          }
-        }
-        if (formData.notes !== entryToEdit.notes) {
-          dataToSend.notes = formData.notes || null;
-        }
-        if (formData.stationType !== entryToEdit.stationType) {
-          dataToSend.stationType = formData.stationType || null;
-        }
-        if (formData.missedFillup !== entryToEdit.missedFillup) {
-          dataToSend.missedFillup = formData.missedFillup;
-        }
-        if (formData.isSubscription !== entryToEdit.isSubscription) {
-          dataToSend.isSubscription = formData.isSubscription;
-        }
-        if (formData.subscriptionStartDate !== entryToEdit.subscriptionStartDate) {
-          dataToSend.subscriptionStartDate = formData.subscriptionStartDate;
-        }
-        if (formData.subscriptionEndDate !== entryToEdit.subscriptionEndDate) {
-          dataToSend.subscriptionEndDate = formData.subscriptionEndDate;
-        }
-
-        // Toujours inclure l'ID du véhicule
-        dataToSend.vehicleId = formData.vehicleId;
-      } else {
-        // Pour une nouvelle entrée, envoyer toutes les données nécessaires
-        dataToSend = {
-          vehicleId: formData.vehicleId,
-          date: formData.date,
-          mileage: Number(formData.mileage),
-          quantity: Number(formData.quantity),
-          unitPrice: Number(formData.unitPrice),
-          totalCost: Number((formData.quantity * formData.unitPrice).toFixed(2)),
-          missedFillup: formData.missedFillup,
-          notes: formData.notes || null,
-          stationType: formData.stationType || null,
-          isSubscription: formData.isSubscription,
-          subscriptionStartDate: formData.subscriptionStartDate,
-          subscriptionEndDate: formData.subscriptionEndDate
-        };
-      }
-
-      // Logs détaillés pour le débogage
-      console.log('Mode:', entryToEdit?.id ? 'Modification' : 'Création');
-      console.log('ID de l\'entrée:', entryToEdit?.id);
-      console.log('Données originales:', entryToEdit);
-      console.log('Données modifiées:', formData);
-      console.log('Données envoyées:', dataToSend);
-
-      const config = {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+      const dataToSubmit = {
+        ...formData,
+        vehicleId: vehicle.id,
       };
 
-      if (entryToEdit?.id) {
-        const response = await axios.put(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries/${entryToEdit.id}`,
-          dataToSend,
-          config
-        );
-        console.log('Réponse du serveur:', response.data);
-      } else {
-        const response = await axios.post(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries`,
-          dataToSend,
-          config
-        );
-        console.log('Réponse du serveur:', response.data);
-      }
-
-      onSuccess();
+      await onSubmit(dataToSubmit);
     } catch (err) {
-      console.error('Erreur détaillée:', err);
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosError = err as { response?: { status?: number; data?: any; }; };
-        console.error('Status:', axiosError.response?.status);
-        console.error('Données d\'erreur:', axiosError.response?.data);
-      }
-      
-      let errorMessage = 'Une erreur est survenue lors de l\'enregistrement';
-      
-      if (err && 
-          typeof err === 'object' && 
-          'response' in err && 
-          err.response && 
-          typeof err.response === 'object' && 
-          'data' in err.response && 
-          err.response.data && 
-          typeof err.response.data === 'object' && 
-          'message' in err.response.data && 
-          typeof err.response.data.message === 'string') {
-        errorMessage = err.response.data.message;
-      }
-      
-      setError(errorMessage);
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setLoading(false);
     }
@@ -315,10 +196,10 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
             <input
               type="date"
               name="date"
-              value={formData.date}
+              value={formData.date ? format(formData.date, 'yyyy-MM-dd') : ''}
               onChange={handleInputChange}
               max={format(new Date(), 'yyyy-MM-dd')}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
               required
             />
           </label>
@@ -442,6 +323,31 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
             </select>
           </label>
         </div>
+
+        <div className="form-group">
+          <label htmlFor="fuelType" className="block text-sm font-medium text-gray-700">
+            Type de carburant
+          </label>
+          <select
+            id="fuelType"
+            name="fuelTypeId"
+            value={formData.fuelTypeId}
+            onChange={handleInputChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            required
+            disabled={fuelTypesLoading}
+          >
+            <option value="">Sélectionnez un type de carburant</option>
+            {fuelTypes.map((fuelType) => (
+              <option key={fuelType.id} value={fuelType.id}>
+                {fuelType.name}
+              </option>
+            ))}
+          </select>
+          {fuelTypesLoading && (
+            <p className="mt-1 text-sm text-gray-500">Chargement des types de carburant...</p>
+          )}
+        </div>
       </div>
 
       <div className="flex items-center mt-4">
@@ -461,28 +367,29 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Début d'abonnement
-              <input
-                type="date"
-                name="subscriptionStartDate"
-                value={formData.subscriptionStartDate || ''}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                required={formData.isSubscription}
-              />
+              Date de début d'abonnement
             </label>
+            <input
+              type="date"
+              id="subscriptionStartDate"
+              name="subscriptionStartDate"
+              value={formData.subscriptionStartDate ? format(formData.subscriptionStartDate, 'yyyy-MM-dd') : ''}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">
-              Fin d'abonnement
-              <input
-                type="date"
-                name="subscriptionEndDate"
-                value={formData.subscriptionEndDate || ''}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
+              Date de fin d'abonnement
             </label>
+            <input
+              type="date"
+              id="subscriptionEndDate"
+              name="subscriptionEndDate"
+              value={formData.subscriptionEndDate ? format(formData.subscriptionEndDate, 'yyyy-MM-dd') : ''}
+              onChange={handleInputChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+            />
           </div>
         </div>
       )}
@@ -565,7 +472,7 @@ export const FuelEntryForm: React.FC<FuelEntryFormProps> = ({
           className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
           disabled={loading}
         >
-          {loading ? 'Enregistrement...' : (entryToEdit ? 'Modifier' : 'Ajouter')}
+          {loading ? 'Enregistrement...' : (entry ? 'Modifier' : 'Ajouter')}
         </button>
       </div>
     </form>

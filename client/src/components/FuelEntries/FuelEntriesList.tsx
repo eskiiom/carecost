@@ -2,22 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import format from 'date-fns/format';
 import { FuelEntryForm } from './FuelEntryForm';
-
-interface FuelEntry {
-  id: string;
-  vehicleId: string;
-  date: string;
-  mileage: number;
-  quantity: number;
-  totalCost: number;
-  missedFillup: boolean;
-  notes?: string;
-  unitPrice: number;
-  stationType?: string;
-  isSubscription: boolean;
-  subscriptionStartDate?: string;
-  subscriptionEndDate?: string;
-}
+import { FuelEntry, Vehicle } from '../../types/vehicle.types';
 
 interface FuelEntriesListProps {
   vehicleId: string;
@@ -31,7 +16,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
   const [showForm, setShowForm] = useState(false);
   const [entryToEdit, setEntryToEdit] = useState<FuelEntry | undefined>();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-  const [vehicle, setVehicle] = useState<any | null>(null);
+  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
 
   const fetchEntries = async () => {
     try {
@@ -42,7 +27,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
       }
 
       const response = await axios.get<FuelEntry[]>(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries/vehicle/${vehicleId}`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/fuel-entries`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -75,7 +60,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
         return;
       }
 
-      const response = await axios.get(
+      const response = await axios.get<Vehicle>(
         `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}`,
         {
           headers: {
@@ -98,6 +83,41 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     fetchVehicle();
   }, [vehicleId]);
 
+  const handleSubmit = async (data: Partial<FuelEntry>) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Non authentifié');
+      }
+
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      if (entryToEdit) {
+        // Update existing entry
+        await axios.put(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/fuel-entries/${entryToEdit.id}`,
+          data,
+          { headers }
+        );
+      } else {
+        // Create new entry
+        await axios.post(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/fuel-entries`,
+          data,
+          { headers }
+        );
+      }
+
+      await handleFormSuccess();
+    } catch (err) {
+      console.error('Erreur lors de la sauvegarde:', err);
+      throw new Error(err instanceof Error ? err.message : 'Une erreur est survenue lors de la sauvegarde');
+    }
+  };
+
   const handleEdit = (entry: FuelEntry) => {
     setEntryToEdit(entry);
     setShowForm(true);
@@ -112,7 +132,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
       }
 
       await axios.delete(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/fuel-entries/${id}`,
+        `${process.env.REACT_APP_API_URL || 'http://localhost:3000'}/api/vehicles/${vehicleId}/fuel-entries/${id}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -135,12 +155,12 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
     }
   };
 
-  const handleFormSuccess = () => {
+  const handleFormSuccess = async () => {
     setShowForm(false);
     setEntryToEdit(undefined);
-    fetchEntries();
-    fetchVehicle();
-    onUpdate();
+    await fetchEntries();
+    await fetchVehicle();
+    await onUpdate();
   };
 
   const getStationTypeLabel = (type?: string) => {
@@ -188,7 +208,7 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
       </div>
 
       {/* Modal pour le formulaire */}
-      {showForm && (
+      {showForm && vehicle && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
@@ -206,14 +226,13 @@ export const FuelEntriesList: React.FC<FuelEntriesListProps> = ({ vehicleId, onU
               </button>
             </div>
             <FuelEntryForm
-              vehicleId={vehicleId}
-              entryToEdit={entryToEdit}
-              onSuccess={handleFormSuccess}
+              vehicle={vehicle}
+              entry={entryToEdit}
+              onSubmit={handleSubmit}
               onCancel={() => {
                 setShowForm(false);
                 setEntryToEdit(undefined);
               }}
-              historicalMaxMileage={vehicle?.historicalMaxMileage}
             />
           </div>
         </div>
