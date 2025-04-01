@@ -9,6 +9,7 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
   - Suivi du kilométrage initial
   - Gestion des types d'énergie (essence, diesel, électrique, etc.)
   - Code couleur pour une identification rapide des types d'énergie
+  - Validation des carburants par type de véhicule
 - Suivi des entrées de carburant
 - Suivi des entrées de maintenance
 - Validation des dates et des données
@@ -22,6 +23,7 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 La documentation détaillée des fonctionnalités est disponible dans le dossier `docs/` :
 
 - [Code Couleur des Types d'Énergie](docs/features/energy-colors.md) - Documentation de l'implémentation du système de couleurs pour les types d'énergie
+- [Validation des Carburants](docs/features/fuel-validation.md) - Documentation du système de validation des carburants par type de véhicule
 
 ## Technologies utilisées
 
