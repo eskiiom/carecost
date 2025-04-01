@@ -8,6 +8,7 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
   - Identification unique par VIN (Vehicle Identification Number)
   - Suivi du kilométrage initial
   - Gestion des types d'énergie (essence, diesel, électrique, etc.)
+  - Code couleur pour une identification rapide des types d'énergie
 - Suivi des entrées de carburant
 - Suivi des entrées de maintenance
 - Validation des dates et des données
@@ -15,6 +16,12 @@ CareCost est une application de gestion de coûts d'entretien de véhicules. Ell
 - Préférences utilisateur personnalisées
   - Mode d'affichage des véhicules (grille/liste)
   - Persistance des préférences entre les sessions
+
+## Documentation
+
+La documentation détaillée des fonctionnalités est disponible dans le dossier `docs/` :
+
+- [Code Couleur des Types d'Énergie](docs/features/energy-colors.md) - Documentation de l'implémentation du système de couleurs pour les types d'énergie
 
 ## Technologies utilisées
 
