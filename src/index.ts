@@ -9,6 +9,7 @@ import fuelEntryRoutes from './routes/fuelEntry.routes';
 import maintenanceEntryRoutes from './routes/maintenanceEntry.routes';
 import statisticsRoutes from './routes/consumptionStatistics.routes';
 import { userPreferencesRoutes } from './routes/userPreferences.routes';
+import fuelRoutes from './routes/fuel.routes';
 
 // Initialisation de l'application Express
 const app = express();
@@ -26,6 +27,7 @@ app.use('/api/vehicles/:vehicleId/fuel-entries', fuelEntryRoutes);
 app.use('/api/vehicles/:vehicleId/maintenance', maintenanceEntryRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/user/preferences', userPreferencesRoutes);
+app.use('/api/fuels', fuelRoutes);
 
 // Route de base pour vérifier que l'API fonctionne
 app.get('/', (req, res) => {
