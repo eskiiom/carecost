@@ -17,10 +17,24 @@ export const ENERGY_COLORS: Record<EnergyType, string> = {
   [EnergyType.HYBRID_GASOLINE]: '#800080', // Violet
   [EnergyType.ELECTRIC]: '#008000',    // Vert
   [EnergyType.HYDROGEN]: '#00FFFF',    // Cyan
+  [EnergyType.FLEX_FUEL]: '#FFA500',   // Orange
+  [EnergyType.BIOFUEL]: '#4B0082',     // Indigo
 };
 ```
 
-### 2. Utilisation dans les Composants
+### 2. Types d'Énergie Supportés
+L'application supporte les types d'énergie suivants :
+- GASOLINE (Essence)
+- DIESEL (Diesel)
+- GPL (GPL)
+- HYBRID_GASOLINE (Hybride Essence)
+- HYBRID_DIESEL (Hybride Diesel)
+- ELECTRIC (Électrique)
+- HYDROGEN (Hydrogène)
+- FLEX_FUEL (Flex-Fuel)
+- BIOFUEL (Biocarburants)
+
+### 3. Utilisation dans les Composants
 Les couleurs sont utilisées dans deux composants principaux :
 
 #### VehicleList.tsx
@@ -31,7 +45,7 @@ Les couleurs sont utilisées dans deux composants principaux :
 - En-tête : Le type d'énergie est affiché avec sa couleur dans la barre d'informations principales
 - Onglet Informations : Le type d'énergie est affiché avec sa couleur dans la section des informations générales
 
-### 3. Fonctions Utilitaires
+### 4. Fonctions Utilitaires
 Deux fonctions utilitaires sont utilisées pour gérer l'affichage :
 
 ```typescript
@@ -44,7 +58,9 @@ const getEnergyTypeLabel = (type: EnergyType) => {
     HYBRID_GASOLINE: 'Hybride Essence',
     HYBRID_DIESEL: 'Hybride Diesel',
     ELECTRIC: 'Électrique',
-    HYDROGEN: 'Hydrogène'
+    HYDROGEN: 'Hydrogène',
+    FLEX_FUEL: 'Flex-Fuel',
+    BIOFUEL: 'Biocarburants'
   };
   return types[type] || type;
 };

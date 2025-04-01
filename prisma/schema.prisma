@@ -86,6 +86,16 @@ model MaintenanceEntry {
   vehicle      Vehicle         @relation(fields: [vehicleId], references: [id])
 }
 
+model FuelType {
+  id          String     @id @default(uuid())
+  name        String     // Nom du carburant (ex: "Sans plomb 95 (E5)")
+  energyType  EnergyType // Type d'énergie associé
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([name, energyType])
+}
+
 enum EnergyType {
   GASOLINE
   DIESEL
@@ -94,6 +104,8 @@ enum EnergyType {
   HYBRID_DIESEL
   ELECTRIC
   HYDROGEN
+  FLEX_FUEL
+  BIOFUEL
 }
 
 enum VehicleStatus {
