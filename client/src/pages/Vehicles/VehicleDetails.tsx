@@ -6,38 +6,7 @@ import { FuelEntriesList } from '../../components/FuelEntries/FuelEntriesList';
 import { MaintenanceList } from '../../components/Maintenance/MaintenanceList';
 import { MaintenanceForm } from '../../components/Maintenance/MaintenanceForm';
 import { VehicleForm } from './VehicleForm';
-
-interface Vehicle {
-  id: string;
-  brand: string;
-  model: string;
-  licensePlate: string;
-  energyType: string;
-  year: number;
-  initialMileage: number;
-  historicalMaxMileage?: number;
-  powerDIN?: number;
-  powerHP?: number;
-  batterySize?: number;
-  chassisNumber?: string;
-  vin: string;
-  mileage: number;
-  fuelType: string;
-  maintenances?: {
-    id: string;
-    date: string;
-    description: string;
-    cost: number;
-    mileage: number;
-  }[];
-  fuelRecords?: {
-    id: string;
-    date: string;
-    quantity: number;
-    cost: number;
-    mileage: number;
-  }[];
-}
+import { Vehicle, VehicleFormData, EnergyType, VehicleStatus, MaintenanceEntry, FuelEntry } from '../../types/vehicle.types';
 
 interface HistoricalMaxMileageResponse {
   historicalMaxMileage: number;
@@ -234,14 +203,16 @@ export const VehicleDetails: React.FC = () => {
                 ✕
               </button>
             </div>
-            <VehicleForm
-              vehicle={vehicle}
-              onSuccess={() => {
-                setShowEditModal(false);
-                fetchVehicle();
-              }}
-              onCancel={() => setShowEditModal(false)}
-            />
+            <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4">
+              <VehicleForm
+                vehicle={vehicle?.licensePlate ? vehicle : undefined}
+                onSuccess={() => {
+                  setShowEditModal(false);
+                  fetchVehicle();
+                }}
+                onCancel={() => setShowEditModal(false)}
+              />
+            </div>
           </div>
         </div>
       )}

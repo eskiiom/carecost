@@ -37,7 +37,6 @@ interface CreateVehicleDTO {
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
-  chassisNumber?: string;
   vin: string;
 }
 
@@ -51,7 +50,6 @@ interface UpdateVehicleDTO {
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
-  chassisNumber?: string;
   vin?: string;
 }
 
@@ -61,18 +59,17 @@ interface CreateVehicleData {
   year: number;
   licensePlate: string;
   vin: string;
-  mileage?: number;
+  mileage: number;
   energyType: EnergyType;
   userId: string;
-  chassisNumber?: string;
   productionDate?: Date;
   acquisitionDate?: Date;
-  initialMileage?: number;
+  initialMileage: number;
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
   lastTechnicalCheck?: Date;
-  nextTechnicalCheck?: Date;
+  lastMaintenanceDone?: Date;
   maintenanceFrequency?: MaintenanceFrequency;
   status?: VehicleStatus;
 }
@@ -85,7 +82,6 @@ interface UpdateVehicleData {
   vin?: string;
   mileage?: number;
   energyType?: EnergyType;
-  chassisNumber?: string;
   productionDate?: Date;
   acquisitionDate?: Date;
   initialMileage?: number;
@@ -93,8 +89,48 @@ interface UpdateVehicleData {
   powerHP?: number;
   batterySize?: number;
   lastTechnicalCheck?: Date;
-  nextTechnicalCheck?: Date;
+  lastMaintenanceDone?: Date;
   maintenanceFrequency?: MaintenanceFrequency;
+  status?: VehicleStatus;
+}
+
+interface CreateVehicleInput {
+  brand: string;
+  model: string;
+  year: number;
+  licensePlate?: string;
+  vin: string;
+  mileage: number;
+  energyType: EnergyType;
+  productionDate?: Date;
+  acquisitionDate?: Date;
+  initialMileage: number;
+  powerDIN?: number;
+  powerHP?: number;
+  batterySize?: number;
+  lastTechnicalCheck?: Date;
+  lastMaintenanceDone?: Date;
+  maintenanceFrequency?: number;
+  status?: VehicleStatus;
+}
+
+interface UpdateVehicleInput {
+  brand?: string;
+  model?: string;
+  year?: number;
+  licensePlate?: string;
+  vin?: string;
+  mileage?: number;
+  energyType?: EnergyType;
+  productionDate?: Date;
+  acquisitionDate?: Date;
+  initialMileage?: number;
+  powerDIN?: number;
+  powerHP?: number;
+  batterySize?: number;
+  lastTechnicalCheck?: Date;
+  lastMaintenanceDone?: Date;
+  maintenanceFrequency?: number;
   status?: VehicleStatus;
 }
 

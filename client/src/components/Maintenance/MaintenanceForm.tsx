@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import { EnergyType, VehicleStatus, MaintenanceEntry, FuelEntry, MaintenanceFrequency } from '../../types/vehicle.types';
 
 interface MaintenanceFormProps {
   vehicleId: string;
@@ -45,16 +46,27 @@ interface Vehicle {
   id: string;
   brand: string;
   model: string;
-  licensePlate: string;
-  energyType: string;
   year: number;
+  licensePlate?: string;
+  vin: string;
+  mileage: number;
+  energyType: EnergyType;
+  productionDate?: Date;
+  acquisitionDate?: Date;
   initialMileage: number;
-  historicalMaxMileage?: number;
   powerDIN?: number;
   powerHP?: number;
   batterySize?: number;
-  chassisNumber?: string;
-  vin: string;
+  lastTechnicalCheck?: Date;
+  lastMaintenanceDone?: Date;
+  maintenanceFrequency?: MaintenanceFrequency;
+  status: VehicleStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  userId: string;
+  fuelEntries: FuelEntry[];
+  maintenanceEntries: MaintenanceEntry[];
+  historicalMaxMileage?: number;
 }
 
 export const MaintenanceForm: React.FC<MaintenanceFormProps> = ({

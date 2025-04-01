@@ -1,0 +1,148 @@
+# Roadmap CareCost
+
+Ce document détaille le plan de développement de CareCost, une application de gestion des coûts d'entretien de véhicules. Il sera régulièrement mis à jour pour refléter l'évolution du projet.
+
+## Version 1 (Finalisation)
+
+### 1. Stabilisation et Tests
+- [ ] Implémentation de tests unitaires pour le backend
+- [ ] Ajout de tests d'intégration
+- [ ] Mise en place de tests E2E pour les flux critiques
+- [ ] Optimisation des performances
+
+### 2. Amélioration de l'UX
+- [ ] Amélioration du design
+- [ ] Mode sombre
+- [ ] Responsive design
+- [ ] Animations et transitions
+- [ ] Formulaire de création de véhicule, proposer une liste de marques et modèles connus/courants, laisser l'utilisateur proposer la sienne (mais envoyer une notification au super admin qu'un véhicule inconnu a été ajouté, faut-il oui ou non l'ajouter à la base générale ?)
+- [ ] Définir un code couleur fixe pour les différents types d'énergie. (utiliser : Diesel : rouge, Essence : jaune, GPL : bleu foncé, E85 : bleu clair, Electrique : Vert, Hybride Gasoil : marron, hybride essence : violet)
+- [ ] Afficher la couleur de l'energie derriere le texte dans les beandeaux infos ou tuiles d'information.
+- [ ] Ajout de filtres avancés pour la liste des véhicules (afficher )
+- [ ] Ajout de tri pour la liste des véhicules (ordre A-Z / Z-A, Dernière MAJ, Kilometrage ->0 ou MAX<-, Date - Prod, Date - Achat)
+- [ ] Implémentation de la recherche (dans la navbar ?il faudrait que l'on puisse chercher tout et n'importe quoi ?)
+- [ ] Ajout de graphiques pour visualiser les coûts sur la page statistiques (attention à bien séparer l'onglet statistiques du détail véhicule (statistiques simples, évolution du kilometrage dans le temps, maqueurs d'entretien et de prise de carburant, courbe de conso au 100 et argent total dépensé
+de la page Statistiques, ou la nous allons aborder des statistiques plus poussées par véhicule, comparer l es véhicules entre eux, etc))
+- [ ] Page statistiques : Rapports annuels, comparaison entre véhicules
+- [ ] Amélioration de la réactivité mobile
+- [ ] Ajout de tri et filtres pour l'affichage des entrées carburant et maintenance (limite nombre d'entrée par page ?)
+- [ ] Autoriser uniquement les carburants suivants dans les entrées Carburant SP95/E5, SP95/E10, SP98/E5, SP98-Premium, E85, Diesel/B7, Diesel-Premium/B7, GPL, GNC
+- [ ] Dans entrées de carburant, ne lister que les carburants compatibles avec le véhicule (par exemple, un véhicule essence ou hybride essence ne pourra accepter que SP95/E5, SP95/E10, SP98/E5, SP98-Premium) Un véhicule hybride diesel ne pourra accepter que Diesel/B7, Diesel-Premium/B7. Il faut restreindre la liste depuis le formulaire afin que l'utilisateur ne puisse pas choisir un mauvais carburant.
+- [ ] Ajout d'une section "informations complémentaires" sous "informations générales" d'un véhicule, que ce soit pour la création, l'édition, ou l'affichage. On doit retrouver toutes les informations obligatoires et si elles n'y sont pas présentes, ajouter les informations suivantes : 
+- Puissance CH
+- Puissance fiscale (DIN)
+- Taille de la batterie si MHEV/PHEV/EV
+- Possibilité de cocher "Plug-in" pour les véhicules qui sont Hybrides*
+- Taille des pneus (et pression de gonflage leger / en charge AV AR)
+- Indice d'huile moteur
+- [ ] Vérifier que dans la base de données et dans le formulaire de création et édition d'un véhicule nous avons bien "date d'acquisition", ainsi que "date de cession" afin de pouvoir "inactiver" un véhicule que l'on aurait cédé ou vendu, mais en souhaitant conserver l'historique des carburant et maintenance et statistiques de ce véhicule.
+- [ ] L'utilisateur doit pouvoir choisir le rythme des maintenances de son véhicule en fonction des données fixées en base de données. Ces données doivent ensuite être affichées dans l'onglet caractéristiques techniques par exemple : Prochaine révision : 15/04/2025, Prochain CT : 21/07/2026
+Dans le bandeau informations véhicules, mais aussi dans la liste des véhicules, 1 mois avant la date d'une de ces 2 échéances, il doit y avoir une petite icone "warning" invitant l'utilisateur a consulter le véhicule en question. Le warning doit s'afficher tant que la date (de prochaine maintenance ou CT en fonction de ce qui a généré le warning) n'a pas été mise a jour.
+- [ ] 
+
+### 3. Fonctionnalités Essentielles
+1. **Statistiques**
+- [ ] Page créée mais non implémentée
+- [ ] Service de base créé mais à compléter
+- [ ] Besoin d'implémenter les visualisations
+
+2. **Gestion des données**
+- [ ] Export des données (PDF, Excel)
+- [ ] Historique des modifications
+- [ ] Import de données historiques
+- [ ] Sauvegarde des données
+
+3. **Notifications**
+- [ ] Système de notifications pour les entretiens prévus et controle technique
+- [ ] Système de rappels pour les échéances
+- [ ] Rappels de maintenance
+- [ ] Alertes de contrôle technique
+- [ ] Notifications de coûts excessifs
+
+4. **Affichage**
+- [ ] Mise en fonction du bouton "missed fuel" et afficher une petite bulle/icone de pompe a essence barrée dans le bandeau détail du véhicule, et sur les entrées de carburant concernées. Texte pour l'infobulle/icone : "Au moins 1 entrée de carburant manquante depuis la dernière saisie, les statistiques peuvent être faussées"
+
+5. **Administration du site** (renommer la page "Maintenance" en "Admin/Config" ou "Mon Compte")
+- [ ] Gestion en fonction du role: USER = ne peut gerer que son compte, ADMIN : peut gérer les utilisateurs qui lui sont rattachés, SUPER_ADMIN = peut tout faire sur tout le site (user, véhicule, carburant, maintenance)
+- [ ] Gestion du profil utilisateur (changement de mot de passe, modification des données affichées, etc)
+- [ ] Système d'administration de l'application. En tant qu'admin et super admin, je veux pouvoir gérer les roles de mes utilisateurs, modifier ou supprimer des utilisateurs.
+Je veux pouvoir gérer les types de maintenances (ajouter ou supprimer à la liste existante)
+Je veux pouvoir lister tous les véhicules de tous les utilisateurs
+
+### 4. Sécurité et Performance
+- [ ] Audit de sécurité
+- [ ] Optimisation des requêtes DB
+- [ ] Mise en cache des données fréquemment utilisées
+- [ ] Protection contre les attaques courantes
+- [ ]Renforcement des validations côté serveur
+- [ ]Amélioration de la gestion des erreurs
+- [ ]Standardisation des codes d'erreur
+
+### 5. Documentation
+- [ ] Documentation API complète (Swagger/OpenAPI)
+- [ ] Guide d'utilisation utilisateur
+- [ ] Documentation technique détaillée
+- [ ] Guide de déploiement
+
+## Version 2
+
+### 1. Fonctionnalités Avancées
+- [ ] Support multi-utilisateurs par véhicule
+- [ ] Système de partage de véhicules
+- [ ] Système de badges et récompenses
+
+### 2. Intelligence Artificielle
+- [ ] Prédiction des coûts d'entretien
+- [ ] Détection d'anomalies dans les dépenses
+- [ ] Recommandations personnalisées
+- [ ] Analyse prédictive des pannes
+
+### 3. Intégrations
+- [ ] Intégration avec les applications de navigation
+- [ ] Synchronisation avec les calendriers
+- [ ] Support des appareils connectés (OBD)
+
+### 4. Expérience Utilisateur Avancée
+- [ ] Mode hors ligne
+- [ ] Application mobile native
+- [ ] Widgets personnalisables
+- [ ] Thèmes personnalisés
+
+### 5. Fonctionnalités Sociales
+- [ ] Comparaison anonyme des coûts
+- [ ] Forum communautaire
+- [ ] Système de notation des garages
+- [ ] Partage d'expériences
+- [ ] Conseils d'entretien
+
+### 6. Monétisation
+- [ ] Version premium avec fonctionnalités avancées
+- [ ] Abonnement pour les services additionnels
+- [ ] Marketplace pour les pièces et services
+- [ ] Programme de fidélité
+
+## Points d'Attention
+
+### Performance
+- [ ] Optimisation des requêtes DB
+- [ ] Mise en cache efficace
+- [ ] Chargement progressif des données
+
+### Sécurité
+- [ ] Authentification à deux facteurs
+- [ ] Chiffrement des données sensibles
+- [ ] Conformité RGPD
+
+### Maintenabilité
+- [ ] Architecture modulaire
+- [ ] Documentation claire
+- [ ] Tests automatisés
+
+### Scalabilité
+- [ ] Architecture microservices
+- [ ] Load balancing
+- [ ] CDN pour les assets
+
+## Notes de Mise à Jour
+
+- 2024-03-31 : Création initiale de la roadmap 

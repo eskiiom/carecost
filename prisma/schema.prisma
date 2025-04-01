@@ -13,62 +13,61 @@ model User {
   password         String
   firstName        String?
   lastName         String?
-  role             UserRole  @default(USER)
   loginAttempts    Int       @default(0)
   lastLoginAttempt DateTime?
   isBlocked        Boolean   @default(false)
-  preferences      Json?     @default("{\"vehicleViewMode\": \"grid\"}")
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
+  role             UserRole  @default(USER)
+  preferences      Json?     @default("{\"vehicleViewMode\": \"grid\"}")
   vehicles         Vehicle[]
 }
 
 model Vehicle {
-  id                    String            @id @default(uuid())
+  id                   String                @id @default(uuid())
   userId               String
   brand                String
   model                String
   licensePlate         String
-  energyType           EnergyType
-  year                 Int
   initialMileage       Float?
   powerDIN             Float?
   powerHP              Float?
   batterySize          Float?
-  chassisNumber        String?
-  vin                  String
-  status               VehicleStatus     @default(ACTIVE)
   maintenanceFrequency MaintenanceFrequency?
+  status               VehicleStatus         @default(ACTIVE)
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  vin                  String
+  year                 Int
   lastTechnicalCheck   DateTime?
   nextTechnicalCheck   DateTime?
-  maintenances         MaintenanceEntry[]
-  fuelRecords          FuelEntry[]
-  user                 User              @relation(fields: [userId], references: [id])
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  energyType           EnergyType
+  fuelEntries          FuelEntry[]
+  maintenanceEntries   MaintenanceEntry[]
+  user                 User                  @relation(fields: [userId], references: [id])
 
   @@unique([userId, licensePlate])
 }
 
 model FuelEntry {
-  id                   String      @id @default(uuid())
-  vehicleId            String
-  date                 DateTime
-  mileage              Float
-  quantity             Float
-  unitPrice            Float
-  totalCost            Float
-  fuelType             String?
-  stationType          StationType?
-  rechargeType         RechargeType?
-  isSubscription       Boolean     @default(false)
-  subscriptionStartDate DateTime?
+  id                    String        @id @default(uuid())
+  vehicleId             String
+  date                  DateTime
+  mileage               Float
+  quantity              Float
+  unitPrice             Float
+  totalCost             Float
+  fuelType              String?
+  status                EntryStatus   @default(ACTIVE)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  isSubscription        Boolean       @default(false)
+  rechargeType          RechargeType?
   subscriptionEndDate   DateTime?
-  notes                String?     @db.Text
-  status               EntryStatus @default(ACTIVE)
-  createdAt            DateTime    @default(now())
-  updatedAt            DateTime    @updatedAt
-  vehicle              Vehicle     @relation(fields: [vehicleId], references: [id])
+  subscriptionStartDate DateTime?
+  stationType           StationType?
+  notes                 String?
+  vehicle               Vehicle       @relation(fields: [vehicleId], references: [id])
 }
 
 model MaintenanceEntry {
@@ -80,10 +79,10 @@ model MaintenanceEntry {
   cost         Float
   mileage      Float
   providerName String?
-  notes        String?
   status       EntryStatus     @default(ACTIVE)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
+  notes        String?
   vehicle      Vehicle         @relation(fields: [vehicleId], references: [id])
 }
 
@@ -114,8 +113,8 @@ enum MaintenanceType {
   ROUTINE
   REPAIR
   TECHNICAL_CHECK
-  TIRES
   OTHER
+  TIRES
 }
 
 enum EntryStatus {
