@@ -7,6 +7,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===== MODULE AUTH =====
 model User {
   id               String    @id @default(uuid())
   email            String    @unique
@@ -20,9 +21,46 @@ model User {
   updatedAt        DateTime  @updatedAt
   role             UserRole  @default(USER)
   preferences      Json?     @default("{\"vehicleViewMode\": \"grid\"}")
+  
+  // Relations
   vehicles         Vehicle[]
+  vehicleShares    VehicleShare[]
+  costCategories   CostCategory[]
+  budgets          Budget[]
+  documents        Document[]
+  notifications    Notification[]
+  userSessions     UserSession[]
+  auditLogs        AuditLog[]
+  
+  // 2FA
+  twoFactorSecret  String?
+  twoFactorEnabled Boolean   @default(false)
+  backupCodes      String[]  @default([])
 }
 
+model UserSession {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  resource  String
+  resourceId String?
+  details   Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ===== MODULE VEHICLES =====
 model Vehicle {
   id                   String                @id @default(uuid())
   userId               String
@@ -42,13 +80,52 @@ model Vehicle {
   lastTechnicalCheck   DateTime?
   nextTechnicalCheck   DateTime?
   energyType           EnergyType
+  isFavorite           Boolean               @default(false)
+  isArchived           Boolean               @default(false)
+  usageType            VehicleUsageType      @default(PERSONAL)
+  
+  // Relations
   fuelEntries          FuelEntry[]
   maintenanceEntries   MaintenanceEntry[]
+  vehicleShares        VehicleShare[]
+  documents            Document[]
+  maintenanceReminders MaintenanceReminder[]
+  budgets              Budget[]
   user                 User                  @relation(fields: [userId], references: [id])
 
   @@unique([userId, licensePlate])
 }
 
+model VehicleShare {
+  id        String   @id @default(uuid())
+  vehicleId String
+  userId    String
+  role      ShareRole @default(DRIVER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  vehicle   Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([vehicleId, userId])
+}
+
+model ManufacturerRecall {
+  id          String   @id @default(uuid())
+  brand       String
+  model       String?
+  yearFrom    Int?
+  yearTo      Int?
+  description String
+  severity    RecallSeverity
+  dateIssued  DateTime
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ===== MODULE FUEL =====
 model FuelEntry {
   id                    String        @id @default(uuid())
   vehicleId             String
@@ -66,10 +143,38 @@ model FuelEntry {
   subscriptionEndDate   DateTime?
   subscriptionStartDate DateTime?
   stationType           StationType?
+  stationName           String?
+  stationAddress        String?
   notes                 String?
+  
+  // Relations
   vehicle               Vehicle       @relation(fields: [vehicleId], references: [id])
 }
 
+model FuelType {
+  id          String     @id @default(uuid())
+  name        String     // Nom du carburant (ex: "Sans plomb 95 (E5)")
+  energyType  EnergyType // Type d'énergie associé
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([name, energyType])
+}
+
+model GasStation {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  latitude  Float?
+  longitude Float?
+  brand     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@unique([name, address])
+}
+
+// ===== MODULE MAINTENANCE =====
 model MaintenanceEntry {
   id           String          @id @default(uuid())
   vehicleId    String
@@ -83,19 +188,112 @@ model MaintenanceEntry {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   notes        String?
+  warrantyEndDate DateTime?
+  
+  // Relations
   vehicle      Vehicle         @relation(fields: [vehicleId], references: [id])
 }
 
-model FuelType {
-  id          String     @id @default(uuid())
-  name        String     // Nom du carburant (ex: "Sans plomb 95 (E5)")
-  energyType  EnergyType // Type d'énergie associé
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  @@unique([name, energyType])
+model MaintenanceTemplate {
+  id          String          @id @default(uuid())
+  name        String
+  description String
+  type        MaintenanceType
+  frequency   MaintenanceFrequency
+  estimatedCost Float?
+  isDefault   Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
 }
 
+model MaintenanceReminder {
+  id           String   @id @default(uuid())
+  vehicleId    String
+  type         ReminderType
+  dueDate      DateTime?
+  dueMileage   Float?
+  description  String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  // Relations
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+}
+
+// ===== MODULE COSTS =====
+model CostCategory {
+  id          String   @id @default(uuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  icon        String?
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, name])
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  userId      String
+  vehicleId   String?
+  name        String
+  amount      Float
+  period      BudgetPeriod
+  startDate   DateTime
+  endDate     DateTime?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+}
+
+// ===== MODULE DOCUMENTS =====
+model Document {
+  id          String   @id @default(uuid())
+  userId      String
+  vehicleId   String?
+  title       String
+  filename    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  ocrText     String?
+  tags        String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id])
+}
+
+// ===== MODULE NOTIFICATIONS =====
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  
+  // Relations
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ===== ENUMS =====
 enum EnergyType {
   GASOLINE
   DIESEL
@@ -113,12 +311,32 @@ enum VehicleStatus {
   SOFT_DELETED
 }
 
+enum VehicleUsageType {
+  PERSONAL
+  PROFESSIONAL
+  MIXED
+}
+
+enum ShareRole {
+  OWNER
+  DRIVER
+  VIEWER
+}
+
+enum RecallSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 enum MaintenanceFrequency {
   ANNUAL
   BIENNIAL
   EVERY_15000KM
   EVERY_20000KM
   EVERY_30000KM
+  CUSTOM
 }
 
 enum MaintenanceType {
@@ -127,6 +345,23 @@ enum MaintenanceType {
   TECHNICAL_CHECK
   OTHER
   TIRES
+  OIL_CHANGE
+  BRAKE_SERVICE
+  AIR_FILTER
+  FUEL_FILTER
+  TIMING_BELT
+  CLUTCH
+  TRANSMISSION
+  ELECTRICAL
+  BODY_WORK
+  PAINT
+  INTERIOR
+}
+
+enum ReminderType {
+  DATE
+  MILEAGE
+  BOTH
 }
 
 enum EntryStatus {
@@ -150,4 +385,20 @@ enum UserRole {
   USER
   ADMIN
   SUPER_ADMIN
+}
+
+enum BudgetPeriod {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum NotificationType {
+  MAINTENANCE_REMINDER
+  FUEL_LOW
+  BUDGET_EXCEEDED
+  SYSTEM_ALERT
+  SHARE_INVITATION
+  GENERAL
 }
