@@ -75,7 +75,7 @@ model Vehicle {
   status               VehicleStatus         @default(ACTIVE)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
-  vin                  String
+  vin                  String                @unique
   year                 Int
   lastTechnicalCheck   DateTime?
   nextTechnicalCheck   DateTime?
