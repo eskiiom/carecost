@@ -9,7 +9,16 @@
     "build": "tsc",
     "test": "jest",
     "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "format": "prettier --write \"src/**/*.ts\"",
+    "db:setup": "node scripts/setup-db.js",
+    "db:test": "node scripts/test-db-connection.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset",
+    "db:status": "prisma migrate status",
+    "db:seed": "ts-node prisma/seed.ts",
+    "status": "node scripts/check-status.js"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
