@@ -5,17 +5,6 @@ import { PrismaClient, UserRole } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-declare global {
-  namespace Express {
-    interface Request {
-      user?: {
-        id: string;
-        role: UserRole;
-      };
-    }
-  }
-}
-
 export const authenticate = async (
   req: Request,
   res: Response,

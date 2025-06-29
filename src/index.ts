@@ -15,9 +15,13 @@ import fuelRoutes from './routes/fuel.routes';
 const app = express();
 
 // Middleware
+if (config.app.nodeEnv === 'development') {
+  app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
+}
 app.use(cors());
 app.use(helmet());
-app.use(morgan('dev'));
 app.use(express.json());
 
 // Routes
@@ -36,14 +40,18 @@ app.get('/', (req, res) => {
 
 // Lister toutes les routes enregistrées
 console.log('Routes enregistrées :');
-app._router.stack.forEach((middleware: any) => {
-  if (middleware.route) {
-    console.log(`Route: ${middleware.route.path}, Method: ${Object.keys(middleware.route.methods)}`);
-  } else if (middleware.name === 'router') {
-    middleware.handle.stack.forEach((handler: any) => {
-      if (handler.route) {
-        const path = handler.route.path;
-        const methods = Object.keys(handler.route.methods).join(', ');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+app._router.stack.forEach((middleware: unknown) => {
+  const m = middleware as { route?: { path: string; methods: Record<string, boolean> }; name?: string; handle?: { stack: unknown[] } };
+  if (m.route) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log(`Route: ${m.route.path}, Method: ${Object.keys(m.route.methods)}`);
+  } else if (m.name === 'router' && m.handle && Array.isArray(m.handle.stack)) {
+    m.handle.stack.forEach((handler: unknown) => {
+      const h = handler as { route?: { path: string; methods: Record<string, boolean> } };
+      if (h.route) {
+        const path = h.route.path;
+        const methods = Object.keys(h.route.methods).join(', ');
         console.log(`Route: ${path}, Method: ${methods}`);
       }
     });
@@ -52,8 +60,13 @@ app._router.stack.forEach((middleware: any) => {
 
 // Gestion des erreurs
 app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Une erreur est survenue sur le serveur' });
+  if (config.app.nodeEnv === 'development') {
+    console.error(err.stack);
+    res.status(500).json({ message: 'Une erreur est survenue sur le serveur', error: err.stack });
+  } else {
+    console.error(err.message);
+    res.status(500).json({ message: 'Une erreur est survenue sur le serveur' });
+  }
 });
 
 // Démarrage du serveur

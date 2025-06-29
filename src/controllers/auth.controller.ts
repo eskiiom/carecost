@@ -1,3 +1,4 @@
+/// <reference path="../@types/express/index.d.ts" />
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { RegisterDTO, LoginDTO, ResetPasswordDTO, UpdatePasswordDTO } from '../types/auth.types';

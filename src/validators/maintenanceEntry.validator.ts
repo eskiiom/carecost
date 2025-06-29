@@ -1,6 +1,19 @@
 import { validateDate, validateMileage, validateVehicleOwnership } from './common.validator';
 
-export const validateMaintenanceEntry = async (data: any, isUpdate = false) => {
+export interface MaintenanceEntryData {
+  vehicleId: string;
+  date: string;
+  type: string;
+  description: string;
+  cost: number;
+  mileage: number;
+  providerName?: string;
+  forceMileageUpdate?: boolean;
+  userId?: string;
+  id?: string;
+}
+
+export const validateMaintenanceEntry = async (data: MaintenanceEntryData, isUpdate = false) => {
   const {
     vehicleId,
     date,

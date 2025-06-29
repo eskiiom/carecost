@@ -3,7 +3,25 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-export const validateFuelEntry = async (data: any) => {
+export interface FuelEntryData {
+  vehicleId: string;
+  date: string;
+  mileage: number;
+  quantity: number;
+  unitPrice: number;
+  totalCost: number;
+  fuelType?: string;
+  stationType?: string;
+  rechargeType?: string;
+  isSubscription?: boolean;
+  subscriptionStartDate?: string;
+  subscriptionEndDate?: string;
+  forceMileageUpdate?: boolean;
+  userId?: string;
+  id?: string;
+}
+
+export const validateFuelEntry = async (data: FuelEntryData) => {
   const {
     vehicleId,
     date,

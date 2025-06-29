@@ -1,6 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
+
+export interface UserPreferences {
+  vehicleViewMode: string;
+  // Ajouter d'autres préférences ici si besoin
+}
 
 export class UserPreferencesService {
   static async getPreferences(userId: string) {
@@ -22,12 +27,12 @@ export class UserPreferencesService {
     }
   }
 
-  static async updatePreferences(userId: string, preferences: any) {
+  static async updatePreferences(userId: string, preferences: UserPreferences) {
     try {
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: {
-          preferences: preferences
+          preferences: preferences as unknown as Prisma.InputJsonValue
         },
         select: { preferences: true }
       });
