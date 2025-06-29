@@ -3,29 +3,31 @@
 ## Phase 1 – Socle technique, Refactoring & Sécurité
 
 - [x] Structure du backend en modules (auth, users, vehicles, costs, etc.)
-- [ ] Séparation claire des routes, contrôleurs, services, middlewares
-- [ ] Nettoyage du code (suppression duplications, noms explicites)
-- [ ] Mise en place d'un linter (ESLint) et d'un formatter (Prettier)
-- [ ] Ajout d'un fichier README technique de base
-- [ ] Hashage et salage sécurisé des mots de passe (bcrypt ou argon2)
-- [ ] Authentification par JWT (ou sessions) opérationnelle
-- [ ] Middleware de protection des routes sensibles
-- [ ] Gestion des variables d'environnement (.env, dotenv)
-- [ ] Désactivation des logs sensibles en production
-- [ ] Configuration de Prisma (ou ORM choisi) et connexion PostgreSQL
-- [ ] Scripts de migration de la base de données fonctionnels
-- [ ] Script de seed pour créer des utilisateurs et données de test
-- [ ] Vérification du schéma de la base (cohérence, relations)
-- [ ] Installation des dépendances backend et frontend
-- [ ] Configuration du proxy ou CORS pour le dialogue front/back
-- [ ] Tests unitaires de base (ex : hash mot de passe, validation email)
-- [ ] Tests d'intégration sur les endpoints principaux (login, CRUD véhicule)
-- [ ] Script ou commande pour vérifier l'état des serveurs (backend, frontend, base)
-- [ ] Vérification manuelle du login et de l'affichage des données de test
-- [ ] Documentation de l'architecture (schéma, modules, flux)
-- [ ] Documentation des endpoints principaux (auth, véhicules, etc.)
-- [ ] Documentation des scripts d'installation, migration, seed
-- [ ] Liste des conventions de code et bonnes pratiques
+- [x] Séparation claire des routes, contrôleurs, services, middlewares
+- [ ] Nettoyage du code (suppression duplications, noms explicites) - **Reporté à plus tard**
+- [x] Mise en place d'un linter (ESLint) et d'un formatter (Prettier)
+- [x] Ajout d'un fichier README technique de base
+- [x] Hashage et salage sécurisé des mots de passe (bcrypt ou argon2)
+- [x] Authentification par JWT (ou sessions) opérationnelle
+- [x] Middleware de protection des routes sensibles
+- [x] Gestion des variables d'environnement (.env, dotenv)
+- [x] Désactivation des logs sensibles en production
+- [x] Configuration de Prisma (ou ORM choisi) et connexion PostgreSQL
+- [x] Scripts de migration de la base de données fonctionnels
+- [x] Script de seed pour créer des utilisateurs et données de test
+- [x] Vérification du schéma de la base (cohérence, relations)
+- [x] Installation des dépendances backend et frontend
+- [x] Configuration du proxy ou CORS pour le dialogue front/back
+- [x] Tests unitaires de base (ex : hash mot de passe, validation email)
+- [x] Tests d'intégration sur les endpoints principaux (login, CRUD véhicule)
+- [x] Script ou commande pour vérifier l'état des serveurs (backend, frontend, base)
+- [x] Vérification manuelle du login et de l'affichage des données de test
+- [x] Documentation de l'architecture (schéma, modules, flux)
+- [x] Documentation des endpoints principaux (auth, véhicules, etc.)
+- [x] Documentation des scripts d'installation, migration, seed
+- [x] Liste des conventions de code et bonnes pratiques
+
+**🎉 PHASE 1 TERMINÉE !**
 
 ---
 
