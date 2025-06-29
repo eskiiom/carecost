@@ -32,7 +32,7 @@ enum MaintenanceFrequency {
 class VehicleController {
   async create(req: Request, res: Response) {
     try {
-      const { brand, model, year, licensePlate, vin, mileage, energyType, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
+      const { brand, model, year, licensePlate, vin, energyType, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -151,7 +151,6 @@ class VehicleController {
         year,
         licensePlate,
         vin,
-        mileage,
         energyType,
         userId,
         productionDate,
@@ -226,7 +225,7 @@ class VehicleController {
   async update(req: Request, res: Response) {
     try {
       const { id } = req.params;
-      const { brand, model, year, licensePlate, vin, mileage, energyType, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
+      const { brand, model, year, licensePlate, vin, energyType, productionDate, acquisitionDate, initialMileage, powerDIN, powerHP, batterySize, lastTechnicalCheck, lastMaintenanceDone, maintenanceFrequency, status } = req.body;
       const userId = req.user?.id;
 
       if (!userId) {
@@ -341,7 +340,6 @@ class VehicleController {
         year,
         licensePlate,
         vin,
-        mileage,
         energyType,
         productionDate,
         acquisitionDate,

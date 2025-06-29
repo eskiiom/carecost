@@ -59,7 +59,6 @@ interface CreateVehicleData {
   year: number;
   licensePlate: string;
   vin: string;
-  mileage: number;
   energyType: EnergyType;
   userId: string;
   productionDate?: Date;
@@ -80,7 +79,6 @@ interface UpdateVehicleData {
   year?: number;
   licensePlate?: string;
   vin?: string;
-  mileage?: number;
   energyType?: EnergyType;
   productionDate?: Date;
   acquisitionDate?: Date;
@@ -100,7 +98,6 @@ interface CreateVehicleInput {
   year: number;
   licensePlate?: string;
   vin: string;
-  mileage: number;
   energyType: EnergyType;
   productionDate?: Date;
   acquisitionDate?: Date;
@@ -120,7 +117,6 @@ interface UpdateVehicleInput {
   year?: number;
   licensePlate?: string;
   vin?: string;
-  mileage?: number;
   energyType?: EnergyType;
   productionDate?: Date;
   acquisitionDate?: Date;

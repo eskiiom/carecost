@@ -39,6 +39,7 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
@@ -51,13 +52,14 @@
     "@types/supertest": "^6.0.3",
     "@typescript-eslint/eslint-plugin": "^7.0.1",
     "@typescript-eslint/parser": "^7.0.1",
+    "bcrypt": "^6.0.0",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^10.1.5",
     "jest": "^29.7.0",
     "nodemon": "^3.0.3",
     "prettier": "^3.2.5",
     "prisma": "^5.10.0",
-    "supertest": "^6.3.3",
+    "supertest": "^6.3.4",
     "ts-jest": "^29.4.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
