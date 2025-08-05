@@ -1,5 +1,7 @@
 # CareCost
 
+idées : https://github.com/javedh-dev/tracktor
+
 CareCost est une application de gestion de coûts d'entretien de véhicules. Elle permet aux utilisateurs de suivre les dépenses liées à leurs véhicules, notamment les entrées de carburant ou de recharge electriques et les entrées de maintenance ou entretien.
 
 ## Fonctionnalités
